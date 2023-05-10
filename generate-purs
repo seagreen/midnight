@@ -1,0 +1,74 @@
+#!/usr/bin/env stack
+{-
+ stack script
+ --resolver lts-19.30
+ --package "directory raw-strings-qq relude"
+ --ghc-options -Wall
+-}
+
+{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE QuasiQuotes #-}
+
+import Relude
+
+import System.Directory (doesFileExist)
+import Text.RawString.QQ
+
+targets :: [(String, String, Text)]
+targets =
+  [ ( "./src/hello-world.midnight"
+    , "./src/Generated/HelloWorldSource.purs"
+    , "Generated.HelloWorldSource"
+    )
+  , ( "./src/editor.midnight"
+    , "./src/Generated/EditorSource.purs"
+    , "Generated.EditorSource"
+    )
+  ]
+
+main :: IO ()
+main = do
+  for_ targets generate
+
+generate :: (String, String, Text) -> IO ()
+generate (sourceFilename, targetFilename, moduleName) = do
+  src <- decodeUtf8 <$> readFileBS sourceFilename
+  let newText = toModule moduleName src
+  exists <- doesFileExist targetFilename
+  unless exists (writeFileBS targetFilename mempty)
+  oldText <- decodeUtf8 <$> readFileBS targetFilename
+  when
+    -- Avoid touching any target files
+    -- except the one that's actually changed.
+    -- That way we don't trigger multiple runs of the test suite.
+    (newText /= oldText)
+    (writeFileBS targetFilename (encodeUtf8 newText))
+
+toModule :: Text -> Text -> Text
+toModule moduleName src =
+  "module " <> moduleName <> fragment1 <> src <> fragment2
+
+fragment1 :: Text
+fragment1 =
+  [r| where
+
+import Prelude
+
+-- | Don't edit me directly!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+-- |
+-- |
+-- |
+-- |
+-- |
+-- |
+-- |
+-- |
+string :: String
+string =
+  """|]
+
+fragment2 :: Text
+fragment2 =
+  [r|"""
+|]

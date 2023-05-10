@@ -1,0 +1,15 @@
+# Dependencies
+node_modules
+
+# Dot files
+.spago
+.psci
+
+# IDE files
+
+# Generated
+output
+
+# Dist
+dist/main.js
+# dist/*.js # `ag` doesn't ignore `*`'d files in `.gitignore`

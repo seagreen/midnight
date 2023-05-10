@@ -1,0 +1,29 @@
+{
+  "private": true,
+  "devDependencies": {
+    "esbuild": "^0.14.38",
+    "purescript": "^0.15.3",
+    "spago": "^0.20.9"
+  },
+  "scripts": {
+    "build": "spago build",
+    "build-watch-not-necessary": "npm run build -- --watch",
+    "bundle": "npm run build && npm run esbuild -- --minify --outfile=dist/main.js",
+    "clean": "rm -rf node_modules output .spago dist/*.js *.lock .cache",
+    "esbuild": "esbuild --bundle index.js",
+    "esbuild-dev": "esbuild --bundle index.js --keep-names --outfile=dist/main.js",
+    "esbuild-dev-watch": "npm run esbuild-dev -- --watch",
+    "format": "fish --command 'purs-tidy format-in-place **/*.purs'",
+    "postinstall": "spago install",
+    "proxy": "./proxy",
+    "serve": "npm run esbuild -- --servedir=dist",
+    "test": "spago test",
+    "test-watch": "npm run test -- --watch",
+    "bench": "spago run --main Bench.Main",
+    "generate-purs": "./generate-purs",
+    "generate-purs-watch": "watchexec --exts midnight -- npm run generate-purs"
+  },
+  "dependencies": {
+    "biwascheme": "^0.8.0"
+  }
+}
