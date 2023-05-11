@@ -264,7 +264,7 @@ string =
     (lambda (str)
       (editor-new
         1
-        (column-and-row-to-grid-posn 1 1)
+        (column-and-row-to-grid-posn 1 2000)
         (string->text str))))
 
 (define editor-new
@@ -1269,6 +1269,21 @@ string =
   'impl
     (lambda (a b)
       (and a b)))
+
+; ------------------------------------------------------------------------------
+; test builtins
+
+(define test-builtin-/
+  'examples
+    (
+      (/ 5 2) 2
+      (/ 5 -2) -2
+      (/ 0 2) 0
+      ; (/ 5 0) 2
+      ; (/ 0 0) 0
+    )
+  'impl
+    'stub)
 
 ; ------------------------------------------------------------------------------
 ; dict

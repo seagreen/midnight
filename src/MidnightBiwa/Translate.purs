@@ -49,6 +49,7 @@ midnightToBiwaMap =
     , Tuple "+" "+"
     , Tuple "-" "-"
     , Tuple "*" "*"
+    , Tuple "/" "/-midnight-helper"
     , Tuple "<" "<-midnight-helper"
     , Tuple "=" "=-midnight-helper"
     , Tuple ">" ">-midnight-helper"
@@ -227,6 +228,14 @@ extraBiwaCode =
 
 (define (int? a)
   (internal-biwa-to-midnight-bool (number? a)))
+
+(define (/-midnight-helper divident divisor)
+  (let
+    ((quotient (quotient divident divisor)))
+    (if
+      (finite? quotient)
+      quotient
+      ('crash-quotient-not-finite))))
 
 (define (<-midnight-helper a b)
   (internal-biwa-to-midnight-bool (< a b)))

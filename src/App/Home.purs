@@ -84,7 +84,7 @@ component =
       , HH.h3_
           [ HH.text "The Language" ]
       , HH.p_
-          [ HH.text "lambda, let, quote, eval, if, car, cdr, cons, list-empty?, list-nonempty?, symbol? symbol-eq?, codepoints-to-symbol, int?, +, -, *, <, =, >" ]
+          [ HH.text "lambda, let, quote, eval, if, car, cdr, cons, list-empty?, list-nonempty?, symbol? symbol-eq?, codepoints-to-symbol, int?, +, -, *, /, <, =, >" ]
       , HH.h3_
           [ HH.text "The System" ]
       , HH.ul_
