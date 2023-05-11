@@ -264,7 +264,7 @@ string =
     (lambda (str)
       (editor-new
         1
-        (column-and-row-to-grid-posn 1 2000)
+        (column-and-row-to-grid-posn 1 1)
         (string->text str))))
 
 (define editor-new
