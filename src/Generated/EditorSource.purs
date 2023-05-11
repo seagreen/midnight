@@ -1537,7 +1537,7 @@ string =
   'impl
     (lambda (f xs)
       (if
-        (list-nonempty? xs)
+        (pair? xs)
         (cons (f (car xs)) (cdr xs))
         '())))
 
@@ -1550,7 +1550,7 @@ string =
   'impl
     (lambda (f xs)
       (if
-        (list-nonempty? xs)
+        (pair? xs)
         (cons (car xs) (list-map-first f (cdr xs)))
         '())))
 
@@ -2100,7 +2100,7 @@ string =
             (and (list-empty? a) (list-empty? b))
             't
             (if
-              (and (list-nonempty? a) (list-nonempty? b))
+              (and (pair? a) (pair? b))
               (if
                 (eq? (car a) (car b))
                 (eq? (cdr a) (cdr b))
@@ -2134,7 +2134,7 @@ string =
             (strict-and (list-empty? a) (list-empty? b))
             't
             (if
-              (strict-and (list-nonempty? a) (list-nonempty? b))
+              (strict-and (pair? a) (pair? b))
               (if
                 (eq? (car a) (car b))
                 (eq? (cdr a) (cdr b))
@@ -2210,7 +2210,7 @@ string =
 
   (alist-key? (lambda (k alist)
     (if
-      (list-nonempty? alist)
+      (pair? alist)
       (let
         ((pair (car alist)))
         (if
@@ -2221,7 +2221,7 @@ string =
 
   (alist-get-or-crash (lambda (k alist)
     (if
-      (list-nonempty? alist)
+      (pair? alist)
       (let
         ((pair (car alist)))
         (if
@@ -2253,9 +2253,9 @@ string =
 
   (two-args (lambda (sexps)
     (if
-      (list-nonempty? sexps)
+      (pair? sexps)
       (if
-        (list-nonempty? (cdr sexps))
+        (pair? (cdr sexps))
         (list (car sexps) (cadr sexps))
         (crash 'two-args-second-not-present))
       (crash 'two-args-first-not-present))))
@@ -2286,7 +2286,7 @@ string =
 
   (cond-macro (lambda (sexps)
     (if
-      (list-nonempty? sexps)
+      (pair? sexps)
       (let
         ((pair (car sexps)))
         (list
@@ -2393,7 +2393,7 @@ string =
 
   (macroexpand (lambda (sexp)
     (if
-      (list-nonempty? sexp)
+      (pair? sexp)
       (let
         ((first (car sexp)))
         (if
@@ -2424,7 +2424,7 @@ string =
 
   (define? (lambda (sexp)
     (if
-      (list-nonempty? sexp)
+      (pair? sexp)
       (let
         ((first (car sexp)))
         (if

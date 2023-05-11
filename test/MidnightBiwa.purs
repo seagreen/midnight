@@ -50,27 +50,27 @@ spec = do
         Biwa.eval "(cons 'a '(b c))"
           `shouldEqual` Right "(a b c)"
 
+      it "pair?" do
+        Biwa.eval "(pair? '(a))"
+          `shouldEqual` Right "t"
+
+        Biwa.eval "(pair? '(a b))"
+          `shouldEqual` Right "t"
+
+        Biwa.eval "(pair? '(a b c))"
+          `shouldEqual` Right "t"
+
+        Biwa.eval "(pair? '())"
+          `shouldEqual` Right "f"
+
+        Biwa.eval "(pair? 'a)"
+          `shouldEqual` Right "f"
+
       it "list-empty?" do
         Biwa.eval "(list-empty? '())"
           `shouldEqual` Right "t"
 
         Biwa.eval "(list-empty? 'a)"
-          `shouldEqual` Right "f"
-
-      it "list-nonempty?" do
-        Biwa.eval "(list-nonempty? '(a))"
-          `shouldEqual` Right "t"
-
-        Biwa.eval "(list-nonempty? '(a b))"
-          `shouldEqual` Right "t"
-
-        Biwa.eval "(list-nonempty? '(a b c))"
-          `shouldEqual` Right "t"
-
-        Biwa.eval "(list-nonempty? '())"
-          `shouldEqual` Right "f"
-
-        Biwa.eval "(list-nonempty? 'a)"
           `shouldEqual` Right "f"
 
     it "symbol?" do

@@ -36,8 +36,8 @@ midnightToBiwaMap =
     , Tuple "car" "car"
     , Tuple "cdr" "cdr"
     , Tuple "cons" "cons"
+    , Tuple "pair?" "pair?-midnight-helper"
     , Tuple "list-empty?" "list-empty?"
-    , Tuple "list-nonempty?" "list-nonempty?"
 
     -- Symbol
     , Tuple "symbol?" "symbol?-midnight-helper"
@@ -202,11 +202,11 @@ extraBiwaCode =
       (TODO-eval-undefined)
       res)))
 
+(define (pair?-midnight-helper a)
+  (internal-biwa-to-midnight-bool (pair? a)))
+
 (define (list-empty? a)
   (internal-biwa-to-midnight-bool (null? a)))
-
-(define (list-nonempty? a)
-  (internal-biwa-to-midnight-bool (pair? a)))
 
 (define (symbol?-midnight-helper a)
   (internal-biwa-to-midnight-bool (symbol? a)))
