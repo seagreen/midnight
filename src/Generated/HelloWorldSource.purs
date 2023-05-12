@@ -21,17 +21,19 @@ string =
     (image-multiple (lambda images
       (list 'image-multiple images)))
 
-    (border
+    (rectangle (lambda (x y width height)
       (image-multiple
-        '(image-line -200 200 200 200)
-        '(image-line 200 200 200 -200)
-        '(image-line 200 -200 -200 -200)
-        '(image-line -200 -200 -200 200)))
+        (list 'image-line x y (+ x width) y)
+        (list 'image-line (+ x width) y (+ x width) (- y height))
+        (list 'image-line (+ x width) (- y height) x (- y height))
+        (list 'image-line x (- y height) x y))))
+
+    (border (rectangle -320 275 200 50))
 
     (example-image
       (image-multiple
         border
-        (list 'image-string -100 100 "hello world")))
+        (list 'image-string -300 250 "hello world")))
   )
 
   (lambda (system-input)

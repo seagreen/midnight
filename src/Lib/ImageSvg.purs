@@ -43,7 +43,7 @@ toHalogenSvg onEvent image =
         [ ClassName "svg-test"
         , ClassName "svg-test--medium"
         ]
-    , HP.style ("background-color: white; width: " <> show width <> "; height: " <> show height <> ";")
+    , HP.style ("background-color: white")
     , SA.viewBox 0.0 0.0 width height
     ]
     [ placeInCenter (imageToSvg onEvent image)
