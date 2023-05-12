@@ -174,16 +174,16 @@ extraBiwaCode :: String
 extraBiwaCode =
   biwaTranslationAlistCode <>
     """
-(define-macro (if-midnight-helper if-b then-branch else-branch)
+(define-macro (if-midnight-helper condition then-branch else-branch)
   `(let
-    ((b-val ,if-b))
+    ((if-midnight-helper-condition ,condition))
     (if
-    (eqv? b-val 't)
-    ,then-branch
-    (if
-      (eqv? b-val 'f)
-      ,else-branch
-      TODO-if-fallthrough))))
+      (eqv? if-midnight-helper-condition 't)
+      ,then-branch
+      (if
+        (eqv? if-midnight-helper-condition 'f)
+        ,else-branch
+        TODO-if-fallthrough))))
 
 (define (internal-biwa-to-midnight-bool b)
   (if
