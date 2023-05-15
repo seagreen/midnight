@@ -61,8 +61,17 @@ prettyprint :: forall a. Sexp -> Doc a
 prettyprint =
   GenericSexp.prettyprint <<< toGenericSexp
 
-prettyprintCols80 :: Sexp -> String
-prettyprintCols80 sexp =
+-- | NOTE: This is only "prefer" since lists that consist only of atoms
+-- | are placed on a single line without breaks.
+-- |
+-- | This is to fix the problem where viewing strings takes up hundreds of lines,
+-- | but isn't a perfect solution since it applies to non-number atoms as well.
+-- |
+-- | To fix this we could get rid of the generic `Lib.Sexp` module
+-- | and fold that logic into here, after which we could specialize
+-- | the code to integers isntead of any atoms.
+prettyprintColsPrefer80 :: Sexp -> String
+prettyprintColsPrefer80 sexp =
   Dodo.print Dodo.plainText Dodo.twoSpaces { pageWidth = 80 } (prettyprint sexp)
 
 toGenericSexp :: Sexp -> GenericSexp.Sexp

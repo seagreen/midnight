@@ -150,7 +150,7 @@ component startingCode startingMoore =
 
     OutputSuccess { imageSexp } ->
       HH.textarea
-        [ HP.value (Sexp.prettyprintCols80 imageSexp)
+        [ HP.value (Sexp.prettyprintColsPrefer80 imageSexp)
         , HP.disabled true
         ]
 
@@ -168,7 +168,7 @@ component startingCode startingMoore =
 
               Right sexp ->
                 HH.textarea
-                  [ HP.value (Sexp.prettyprintCols80 sexp)
+                  [ HP.value (Sexp.prettyprintColsPrefer80 sexp)
                   , HP.disabled true
                   ]
       ]
@@ -187,7 +187,7 @@ component startingCode startingMoore =
 
               Right sexp ->
                 HH.textarea
-                  [ HP.value (Sexp.prettyprintCols80 sexp)
+                  [ HP.value (Sexp.prettyprintColsPrefer80 sexp)
                   , HP.disabled true
                   ]
       ]

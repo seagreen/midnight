@@ -7,6 +7,7 @@ import Control.Lazy (fix)
 import Data.Array as Array
 import Data.Bifunctor (lmap)
 import Data.Either (Either)
+import Data.Foldable (all)
 import Data.Generic.Rep (class Generic)
 import Data.List ((:))
 import Data.List as PsList
@@ -193,13 +194,29 @@ printList xs =
 
 prettyprintList :: forall a. PsList Sexp -> Doc a
 prettyprintList xs =
-  Dodo.flexGroup
-    ( Dodo.text (charToString syn.openParen)
-        <>
-          ( Dodo.indent (Dodo.foldWithSeparator Dodo.spaceBreak (prettyprint <$> xs))
-              <> Dodo.text (charToString syn.closeParen)
-          )
-    )
+  if all isAtom xs then
+    Dodo.text (charToString syn.openParen)
+      <>
+        ( Dodo.foldWithSeparator Dodo.space (prettyprint <$> xs)
+            <> Dodo.text (charToString syn.closeParen)
+        )
+
+  else
+    Dodo.flexGroup
+      ( Dodo.text (charToString syn.openParen)
+          <>
+            ( Dodo.indent (Dodo.foldWithSeparator Dodo.spaceBreak (prettyprint <$> xs))
+                <> Dodo.text (charToString syn.closeParen)
+            )
+      )
+  where
+  isAtom :: Sexp -> Boolean
+  isAtom = case _ of
+    Atom _ ->
+      true
+
+    _ ->
+      false
 
 listP :: Parser Sexp -> Parser (PsList Sexp)
 listP p =

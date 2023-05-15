@@ -83,7 +83,7 @@ spec = do
                       fail e
 
                     Right expandedSexp -> do
-                      -- _ <- pure (spy "macroexpanded" (Sexp.prettyprintCols80 expandedSexp))
+                      -- _ <- pure (spy "macroexpanded" (Sexp.prettyprintColsPrefer80 expandedSexp))
                       pure unit
 
     it "initial editor outputs an image successfully" do
