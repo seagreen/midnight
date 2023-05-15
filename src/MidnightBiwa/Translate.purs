@@ -175,15 +175,17 @@ extraBiwaCode =
   biwaTranslationAlistCode <>
     """
 (define-macro (if-midnight-helper condition then-branch else-branch)
-  `(let
-    ((if-midnight-helper-condition ,condition))
-    (if
-      (eqv? if-midnight-helper-condition 't)
-      ,then-branch
+  (let
+    ((condition-sym (gensym "condition-sym")))
+    `(let
+      ((,condition-sym ,condition))
       (if
-        (eqv? if-midnight-helper-condition 'f)
-        ,else-branch
-        TODO-if-fallthrough))))
+        (eqv? ,condition-sym 't)
+        ,then-branch
+        (if
+          (eqv? ,condition-sym 'f)
+          ,else-branch
+          TODO-if-fallthrough)))))
 
 (define (internal-biwa-to-midnight-bool b)
   (if
