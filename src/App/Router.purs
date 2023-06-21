@@ -18,6 +18,7 @@ import Generated.HelloWorldSource as HelloWorldSource
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Core (HTML)
+import Halogen.HTML.Properties as HP
 import Type.Proxy (Proxy(..))
 import Web.UIEvent.MouseEvent (MouseEvent)
 import Web.UIEvent.MouseEvent as MouseEvent
@@ -126,5 +127,10 @@ component =
         _ ->
           HH.div_
             [ HH.p_
-                [ HH.text "⚠️Construction notice: don't try to use this yet. I need to freeze the language and add real error messages first." ]
+                [ HH.text "⚠️Construction notice: see "
+                , HH.a
+                    [ HP.href "https://github.com/seagreen/midnight/issues/1" ]
+                    [ HH.text "this issue" ]
+                , HH.text " for details"
+                ]
             ]

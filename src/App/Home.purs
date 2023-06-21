@@ -86,7 +86,7 @@ component =
       , HH.h2_
           [ HH.text "The Two-Key Turing Machine" ]
       , HH.p_
-          [ HH.text "The most minimal self-modifying system would be a turing tape, a boolean for a display, and a boolean for input." ]
+          [ HH.text "The most minimal self-modifying system would be a turing machine, a boolean for a display, and a boolean for input." ]
       , HH.p_
           [ HH.text "A physical version would look like this with a lightbulb attached:" ]
       , HH.img
@@ -100,7 +100,7 @@ component =
       , HH.h2_
           [ HH.text "The Result" ]
       , HH.p_
-          [ HH.text "I decided to use a Lisp variant as the base language. It's easy to make a Lisp that's both tiny and readable. More details are in "
+          [ HH.text "I decided to use a Lisp variant as the base language, since it's easy to make both tiny and readable. More details are in "
           , UiComponent.internalLink' Nav { route: Route.MidnightLispDoc, label: HH.text "the language doc" }
           , HH.text "."
           ]
@@ -161,17 +161,7 @@ component =
               ]
           ]
       , HH.h2_
-          [ HH.text "Long-Term Goals" ]
+          [ HH.text "Long-Term Plan" ]
       , HH.p_
-          [ HH.text "Roughly in order:" ]
-      , HH.ol_
-          [ HH.li_
-              [ HH.text "Don't change. Make a precise specification and freeze it." ]
-          , HH.li_
-              [ HH.text "Be high-level and comprehensible" ]
-          , HH.li_
-              [ HH.text "Be small. Where this conflicts with comphensibility the latter is favored. For example, the language has let even though it can be viewed as sugar for function application." ]
-          , HH.li_
-              [ HH.text "Be performant enough to be fun." ]
-          ]
+          [ HH.text "While the original goal was personal education, I'd like to get it into a state where other people can use it too if they'd like. The main barrier to this right now is the bad docs and error messages. Once that's fixed I'll freeze the specification." ]
       ]
