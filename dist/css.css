@@ -2,7 +2,7 @@
 
 body {
   font-family: sans-serif;
-  margin: 10px 50px 50px;
+  margin: 25px 50px 70px; /* top | left and right | bottom */
   max-width: 1000px;
 }
 
@@ -13,6 +13,11 @@ p, ul, ol {
 }
 
 li {
+  margin-bottom: 15px;
+}
+
+img {
+  width: initial; /* terminal-css was setting them to 100% */
   margin-bottom: 15px;
 }
 

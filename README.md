@@ -2,7 +2,7 @@
 
 A minimalist lisp language and computing environment that runs in the browser.
 
-For more information see https://midnightlisp.com
+For more information see https://midnightsystem.com
 
 # Development model
 

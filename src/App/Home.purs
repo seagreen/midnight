@@ -56,35 +56,55 @@ component =
       , HH.p_
           [ HH.text "There are no packages and no FFI, so each program is its own world.🏝️"
           ]
-      , HH.h2_ [ HH.text "Words are Bad, Let Me See It" ]
+      , HH.h2_
+          [ HH.text "Examples" ]
       , HH.p_
           [ UiComponent.internalLink' Nav { route: Route.HelloWorld, label: HH.text "Hello World" } ]
+      , HH.p_
+          [ UiComponent.internalLink' Nav { route: Route.Editor, label: HH.text "Editor" } ]
       , HH.h2_
-          [ HH.text "Why" ]
-      , HH.ul_
-          [ HH.li_
-              [ HH.p_
-                  [ HH.span
-                      [ HP.style "font-weight: bold" ]
-                      [ HH.text "Fun Through Comprehensibility:" ]
-                  , HH.text " With Midnight you can understand absolutely everything about the system you're using in about an hour. This is totally unlike modern software development (for most of us, at least). It's kind of neat."
-                  ]
-              ]
-          , HH.li_
-              [ HH.p_
-                  [ HH.span
-                      [ HP.style "font-weight: bold" ]
-                      [ HH.text "Education:" ]
-                  , HH.text " Building up from near-scratch is an insanely effective way to learn."
-                  ]
-              ]
+          [ HH.text "Related Projects" ]
+      , HH.p_
+          [ HH.a
+              [ HP.href "https://github.com/seagreen/ians-lists/blob/main/miniature-computing-systems.md" ]
+              [ HH.text "List of miniature computing systems" ]
           ]
       , HH.h2_
-          [ HH.text "Docs in Brief" ]
-      , HH.h3_
-          [ HH.text "The Language" ]
+          [ HH.text "Motivation" ]
       , HH.p_
-          [ HH.text "lambda, let, quote, eval, if, car, cdr, cons, pair?, list-empty?, symbol? symbol-eq?, codepoints-to-symbol, int?, +, -, *, /, <, =, >" ]
+          [ HH.text "I find self-modifying, "
+          , HH.a [ HP.href "https://en.wikipedia.org/wiki/Smalltalk#Image-based_persistence" ] [ HH.text "image" ]
+          , HH.text " based systems intriguing. However they involve multiple concepts that are hard to understand:"
+          , HH.ul_
+              [ HH.li_ [ HH.text "Images vs. filesystems" ]
+              , HH.li_ [ HH.text "What can and can't be modified" ]
+              , HH.li_ [ HH.text "Which parts must be written in the base language vs which parts can be higher level" ]
+              ]
+          ]
+      , HH.p_
+          [ HH.text "In these situations I find the best move is to make a toy example of the thing I'm studying. Once I understand that it's easier to move on to the real thing." ]
+      , HH.h2_
+          [ HH.text "The Two-Key Turing Machine" ]
+      , HH.p_
+          [ HH.text "The most minimal self-modifying system would be a turing tape, a boolean for a display, and a boolean for input." ]
+      , HH.p_
+          [ HH.text "A physical version would look like this with a lightbulb attached:" ]
+      , HH.img
+          [ HP.src "binary-keyboard.png"
+          , HP.width 300
+          , HP.height 240
+          , HP.alt "Binary keyboard with just 0 and 1 keys."
+          ]
+      , HH.p_
+          [ HH.text "That's a little stark though, so I expanded my criteria to be both (1) minimal and (2) high-level." ]
+      , HH.h2_
+          [ HH.text "The Result" ]
+      , HH.p_
+          [ HH.text "I decided to use a Lisp variant as the base language. It's easy to make a Lisp that's both tiny and readable. More details are in "
+          , UiComponent.internalLink' Nav { route: Route.MidnightLispDoc, label: HH.text "the language doc" }
+          , HH.text "."
+          ]
+      , HH.p_ [ HH.text "With that done the rest of the project fell into place." ]
       , HH.h3_
           [ HH.text "The System" ]
       , HH.ul_
@@ -101,7 +121,7 @@ component =
                   [ HH.span
                       [ HP.style "font-weight: bold" ]
                       [ HH.text "Ephemeral storage:" ]
-                  , HH.text " a Midnight value, which unlike an S-expression can include closures."
+                  , HH.text " a Midnight Lisp value, which unlike an S-expression can include closures."
                   ]
               ]
           , HH.li_
@@ -125,7 +145,7 @@ component =
                   [ HH.span
                       [ HP.style "font-weight: bold" ]
                       [ HH.text "\"Machine\" language:" ]
-                  , HH.text " Midnight."
+                  , HH.text " Midnight Lisp."
                   ]
               ]
           , HH.li_
@@ -133,7 +153,7 @@ component =
                   [ HH.span
                       [ HP.style "font-weight: bold" ]
                       [ HH.text "High-level language:" ]
-                  , HH.text " you probably want to build your own."
+                  , HH.text " none specified, but they can be built within the system."
                   , HH.text " "
                   , UiComponent.internalLink' Nav { route: Route.Editor, label: HH.text "Editor" }
                   , HH.text " gives an example of this."
@@ -141,50 +161,17 @@ component =
               ]
           ]
       , HH.h2_
-          [ HH.text "Non-Goals" ]
-      , HH.ul_
-          [ HH.li_
-              [ HH.p_
-                  [ HH.span
-                      [ HP.style "font-weight: bold" ]
-                      [ HH.text "Be for Everyone:" ]
-                  , HH.text " The target audience is niche. Even if you like the idea you might have more fun building your own platform too."
-                  ]
-              ]
-          , HH.li_
-              [ HH.p_
-                  [ HH.span
-                      [ HP.style "font-weight: bold" ]
-                      [ HH.text "Be Good:" ]
-                  , HH.text " Midnight is minimalistic, not in the sense of \"elegant\", but in the sense of \"too small\". Turns out colored output and a data structure that's not a linked-list are both boons! But Midnight is optimized for comprehensibility, not goodness."
-                  ]
-              ]
-          ]
-      , HH.h2_
-          [ HH.text "Goals" ]
+          [ HH.text "Long-Term Goals" ]
       , HH.p_
           [ HH.text "Roughly in order:" ]
       , HH.ol_
           [ HH.li_
               [ HH.text "Don't change. Make a precise specification and freeze it." ]
           , HH.li_
-              [ HH.text "Be comprehensible" ]
+              [ HH.text "Be high-level and comprehensible" ]
           , HH.li_
-              [ HH.text "Be tiny and high level. There's already a horde of projects in the other quadrants. Where this conflicts with comphensibility the latter is favored. For example, the language has let even though it can be viewed as sugar for function application." ]
-          , HH.li_
-              [ HH.text "Stick roughly to Scheme conventions. car cdr cons, lexical scope, etc. This way (a) we don't have to reinvent that wheel, and (b) Midnight knowledge can carry over a little bit to a real language." ]
+              [ HH.text "Be small. Where this conflicts with comphensibility the latter is favored. For example, the language has let even though it can be viewed as sugar for function application." ]
           , HH.li_
               [ HH.text "Be performant enough to be fun." ]
           ]
-      , HH.h2_
-          [ HH.text "Examples" ]
-      , HH.p_
-          [ UiComponent.internalLink' Nav { route: Route.HelloWorld, label: HH.text "Hello World" } ]
-      , HH.p_
-          [ UiComponent.internalLink' Nav { route: Route.Editor, label: HH.text "Editor" } ]
-
-      , HH.h2_
-          [ HH.text "Related Projects" ]
-      , HH.p_
-          [ HH.text "Coming soon, I'm going to make a list of these." ]
       ]
