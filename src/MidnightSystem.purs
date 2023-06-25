@@ -39,21 +39,30 @@ instance Show StartupFailure where
 moore :: String -> Either StartupFailure (Moore Keyboard Output)
 moore midnightSrc =
   lmap StartupFailure do
+    -- Evaluate our Midnight source code, turning it into a Biwa closure.
+    --
+    -- (this is slow)
     mainMidnight <-
       lmap
         (\err -> "Evaluation of source failed: " <> err)
         (MidnightBiwa.evalToForeign midnightSrc)
 
+    -- Starting with the original Midnight source again,
+    -- turn it into a biwa value containing a Midnight string.
     startingInput <-
       lmap
         (\err -> "Evaluation of starting input failed: " <> err)
         (Startup.editorStringToInput midnightSrc)
 
+    -- Apply the Biwa closure to the Midnight string.
+    --
+    -- (this is slow too)
     systemOutput <-
       lmap
         (\err -> "Application of the main function failed: " <> err)
         (MidnightBiwa.applyClosure mainMidnight [ startingInput ])
 
+    -- Parse the output.
     StepNormal { imageSexp, image, store, ephem } <-
       lmap
         (\err -> "Processing of the output failed: " <> err)
