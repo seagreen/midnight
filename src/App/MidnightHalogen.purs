@@ -55,6 +55,8 @@ component name startingCode =
       -- the midnight app loads.
       --
       -- See here: https://www.reddit.com/r/purescript/comments/o3j0d1/halogen_how_to_force_rerender_after_modifying/
+      --
+      -- TODO: Not working if this is the first page loaded.
       H.put Starting
       H.liftAff $ delay $ Milliseconds 0.0
       _ <-
