@@ -17,8 +17,6 @@ class MyProxy(http.server.SimpleHTTPRequestHandler):
         return self.path
       if self.path == '/css.css':
         return self.path
-      if self.path == '/binary-keyboard.png':
-        return self.path
       else:
         return '/'
 
