@@ -65,7 +65,9 @@ component =
   render :: State -> H.ComponentHTML Action ChildSlots m
   render { route } =
     HH.div_
-      [ HH.h1_ linkToHomeIfWereNotThere
+      [ HH.h1
+          [ HP.class_ (H.ClassName "font-black") ]
+          linkToHomeIfWereNotThere
       , constructionNoticeIfNotOnPage
       , case route of
           Just r -> case r of

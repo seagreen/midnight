@@ -15,7 +15,7 @@ class MyProxy(http.server.SimpleHTTPRequestHandler):
       # TODO: This is a hack, because it has to be kept synced with whatever static files we use.
       if self.path == '/main.js':
         return self.path
-      if self.path == '/css.css':
+      if self.path == '/style.css':
         return self.path
       else:
         return '/'
