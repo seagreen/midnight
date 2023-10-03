@@ -65,7 +65,7 @@ component =
   render :: State -> H.ComponentHTML Action ChildSlots m
   render { route } =
     HH.div
-      [HP.class_ (H.ClassName "flex flex-col items-center mt-2")]
+      [HP.class_ (H.ClassName "flex flex-col items-center mt-4")]
       [ HH.h1
           [HP.class_ (H.ClassName "text-xl font-bold")]
           linkToHomeIfWereNotThere

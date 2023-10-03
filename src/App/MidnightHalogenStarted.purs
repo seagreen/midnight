@@ -209,7 +209,7 @@ component startingCode startingMoore =
   renderButtons :: forall slots. Mode -> H.ComponentHTML Action slots m
   renderButtons currentMode =
     HH.div
-      [ HP.class_ (H.ClassName "flex flex-row justify-center") ]
+      [ HP.class_ (H.ClassName "flex flex-row justify-center mt-1") ]
       [ button Live
       , button Display
       , button Store
@@ -340,7 +340,7 @@ relaunchFromSource = do
 displayToHtml :: forall slots m. Display -> H.ComponentHTML Action slots m
 displayToHtml display =
   HH.pre
-    [ HP.class_ (H.ClassName "border-solid border-2 border-black mt-2") ]
+    [ HP.class_ (H.ClassName "border-solid border-2 border-black p-5 mt-5 font-['Lekton']") ]
     linesWithCursor
   where
   linesWithCursor :: Array (H.ComponentHTML Action slots m)
