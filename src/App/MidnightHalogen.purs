@@ -33,9 +33,8 @@ component
   :: forall q i o m
    . MonadAff m
   => String
-  -> String
   -> H.Component q i o m
-component name startingCode =
+component startingCode =
   H.mkComponent
     { initialState: \_ -> Starting
     , render: render
@@ -72,8 +71,7 @@ component name startingCode =
   render :: State -> H.ComponentHTML Action ChildSlots m
   render state =
     HH.div_
-      [ HH.h2_ [ HH.text name ]
-      , case state of
+      [ case state of
           Unstarted ->
             HH.p_ [ HH.text "Unstarted" ] -- This should never show
 

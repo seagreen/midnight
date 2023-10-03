@@ -7,13 +7,11 @@ import App.Halogen (OpaqueSlot)
 import App.MidnightHalogen as App.MidnightHalogen
 import App.Route (Route)
 import App.Route as Route
-import App.UiComponent as UiComponent
 import Data.Maybe (Maybe(..))
 import Effect.Aff.Class (class MonadAff)
 import Generated.EditorSource as EditorSource
 import Halogen as H
 import Halogen.HTML as HH
-import Halogen.HTML.Core (HTML)
 import Halogen.HTML.Properties as HP
 import Type.Proxy (Proxy(..))
 import Web.UIEvent.MouseEvent (MouseEvent)
@@ -66,46 +64,16 @@ component =
     HH.div_
       [ HH.h1
           [ HP.class_ (H.ClassName "font-black") ]
-          linkToHomeIfWereNotThere
-      , constructionNoticeIfNotOnPage
+          [ HH.text "Midnight System" ]
       , case route of
           Just r -> case r of
             Route.Home ->
               HH.slot_
                 (Proxy :: _ "home")
                 unit
-                (App.MidnightHalogen.component "Editor" EditorSource.string)
+                (App.MidnightHalogen.component EditorSource.string)
                 unit
 
           Nothing ->
             HH.div_ [ HH.text "Page not found." ]
       ]
-    where
-    linkToHomeIfWereNotThere :: forall w. Array (HTML w Action)
-    linkToHomeIfWereNotThere =
-      case route of
-        Just Route.Home ->
-          [ HH.text "Midnight System"
-          ]
-
-        _ ->
-          [ UiComponent.internalLink' Nav { route: Route.Home, label: HH.text "Midnight" }
-          , HH.text " System"
-          ]
-
-    constructionNoticeIfNotOnPage :: H.ComponentHTML Action ChildSlots m
-    constructionNoticeIfNotOnPage =
-      case route of
-        Just Route.Home ->
-          HH.div_ []
-
-        _ ->
-          HH.div_
-            [ HH.p_
-                [ HH.text "⚠️Construction notice: see "
-                , HH.a
-                    [ HP.href "https://github.com/seagreen/midnight/issues/1" ]
-                    [ HH.text "this issue" ]
-                , HH.text " for details"
-                ]
-            ]
