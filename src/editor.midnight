@@ -101,38 +101,25 @@
   'impl
     (lambda (editor)
       (list
-        'image-multiple
-        (list
-          (view-cursor (editor-viewport-row editor) (editor-cursor editor))
-          (view-text (editor-viewport-row editor) (editor-text editor))))))
+        (view-cursor (editor-viewport-row editor) (editor-cursor editor))
+        (view-text (editor-viewport-row editor) (editor-text editor)))))
 
 (define view-cursor
   'impl
     (lambda (viewport-row cursor)
-      (view-line
-        (- (grid-posn-row cursor) (nat-decrement viewport-row))
-        (list->string
-          (snoc
-            (list-replicate
-              (nat-decrement (grid-posn-column cursor))
-              codepoint-space)
-            codepoint-underscore)))))
+      (list
+        'cursor-position
+        (nat-decrement (grid-posn-column cursor))
+        (- (grid-posn-row cursor) viewport-row))))
 
 (define view-text
   'impl
     (lambda (viewport-row text)
       (list
-        'image-multiple
-        (list-map-with-index
-          view-line
-          (list-take
-            display-size-columns
-            (list-drop (nat-decrement viewport-row) text))))))
-
-(define view-line
-  'impl
-    (lambda (row str)
-      (list 'image-string column-starting-point (row-to-y row) str)))
+        'text
+        (list-take
+          display-size-columns
+          (list-drop (nat-decrement viewport-row) text)))))
 
 ; ------------------------------------------------------------------------------
 ; update

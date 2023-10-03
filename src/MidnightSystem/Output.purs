@@ -10,16 +10,16 @@ import Data.String as String
 import Data.String.CodePoints (CodePoint)
 import Data.Traversable (for)
 import Foreign (Foreign)
-import Lib.Image (Image)
 import Lib.Sexp as GenericSexp
 import MidnightBiwa as MidnightBiwa
 import MidnightBiwa.Foreign as Foreign
 import MidnightBiwa.Translate as Translate
 import MidnightLang.Sexp (Sexp)
 import MidnightLang.Sexp as Sexp
-import MidnightSystem.Image as MidnightSystem.Image
+import MidnightSystem.Display as Display
+import MidnightSystem.Display (Display)
 
-data StepOutput = StepNormal { imageSexp :: Sexp, image :: Image, store :: Foreign, ephem :: Foreign }
+data StepOutput = StepNormal { displaySexp :: Sexp, display :: Display, store :: Foreign, ephem :: Foreign }
 
 biwaOutput :: Foreign -> Either String StepOutput
 biwaOutput val = do
@@ -27,12 +27,12 @@ biwaOutput val = do
   outputConstructorSexp <- foreignToSexp outputConstructorForeign
   case outputConstructorSexp of
     Sexp.Symbol "output-normal" -> do
-      imageForeign <- getSecond val
-      imageSexp <- lmap (\err -> "foreign to image sexp: " <> err) (foreignToSexp imageForeign)
-      image <- lmap (\err -> "parse image sexp: " <> err) (MidnightSystem.Image.parse imageSexp)
+      displayForeign <- getSecond val
+      displaySexp <- lmap (\err -> "foreign to display sexp: " <> err) (foreignToSexp displayForeign)
+      display <- lmap (\err -> "parse display sexp: " <> err) (Display.parse displaySexp)
       store <- getThird val
       ephem <- getFourth val
-      pure (StepNormal { imageSexp, image, store, ephem })
+      pure (StepNormal { displaySexp, display, store, ephem })
 
     other ->
       Left ("Parse step output: output constructor not recognized: " <> Sexp.print other)

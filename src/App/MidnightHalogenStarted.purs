@@ -2,12 +2,15 @@ module App.MidnightHalogenStarted where
 
 import Prelude
 
+import Data.Array as Array
 import Data.Either (Either(..))
+import Data.Foldable (fold)
 import Data.Generic.Rep (class Generic)
 import Data.Maybe (Maybe(..))
 import Data.Newtype (unwrap)
 import Data.Show.Generic (genericShow)
 import Data.String as String
+import Data.String.CodePoints as CodePoints
 import Data.String.CodeUnits as CodeUnits
 import Effect.Class (class MonadEffect)
 import Halogen as H
@@ -15,11 +18,11 @@ import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Halogen.Query.Event (eventListener)
-import Lib.ImageSvg as ImageSvg
 import Lib.Moore (Moore(..))
 import MidnightLang.Sexp as Sexp
 import MidnightSystem (Output(..), StartupFailure(..))
 import MidnightSystem as MidnightSystem
+import MidnightSystem.Display (Display)
 import MidnightSystem.Keyboard (ArrowKey(..), Key(..), Keyboard)
 import MidnightSystem.Output as Output
 import Web.Event.Event as E
@@ -138,19 +141,19 @@ component startingCode startingMoore =
           OutputCrash err ->
             HH.p_ [ HH.text err ]
 
-          OutputSuccess { image } ->
-            ImageSvg.toHalogenSvg ImageSvg.noEvent image
+          OutputSuccess { display } ->
+            displayToHtml display
       ]
 
   renderDisplay :: forall slots. Output -> H.ComponentHTML Action slots m
   renderDisplay = case _ of
     OutputCrash _ ->
       HH.p_
-        [ HH.text "No image present since the app is currently crashed." ]
+        [ HH.text "No display present since the app is currently crashed." ]
 
-    OutputSuccess { imageSexp } ->
+    OutputSuccess { displaySexp } ->
       HH.textarea
-        [ HP.value (Sexp.prettyprintColsPrefer80 imageSexp)
+        [ HP.value (Sexp.prettyprintColsPrefer80 displaySexp)
         , HP.disabled true
         ]
 
@@ -333,3 +336,34 @@ relaunchFromSource = do
 
     Right moore ->
       H.modify_ (\s -> s { mode = Live, moore = moore })
+
+displayToHtml :: forall slots m. Display -> H.ComponentHTML Action slots m
+displayToHtml display =
+  HH.pre_
+    linesWithCursor
+  where
+  linesWithCursor :: Array (H.ComponentHTML Action slots m)
+  linesWithCursor =
+    fold
+      ( Array.mapWithIndex
+          ( \i line ->
+              if i == display.cursorPosition.y then
+                addCursorToLine line <> [ HH.text "\n" ]
+              else
+                [ HH.text (line <> "\n") ]
+          )
+          display.text
+      )
+
+  addCursorToLine :: String -> Array (H.ComponentHTML Action slots m)
+  addCursorToLine line =
+    Array.mapWithIndex
+      ( \i char ->
+          if i == display.cursorPosition.x then
+            HH.span
+              [ HP.class_ (H.ClassName "underline") ]
+              [ HH.text (CodePoints.singleton char) ]
+          else
+            HH.text (CodePoints.singleton char)
+      )
+      (CodePoints.toCodePointArray line)
