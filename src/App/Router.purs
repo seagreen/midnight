@@ -4,10 +4,7 @@ import Prelude
 
 import App.Capability.Navigate (class Navigate, navTo)
 import App.Halogen (OpaqueSlot)
-import App.Home as Home
-import App.ImageExample as ImageExample
 import App.MidnightHalogen as App.MidnightHalogen
-import App.Page.MidnightLispDoc as Page.MidnightLispDoc
 import App.Route (Route)
 import App.Route as Route
 import App.UiComponent as UiComponent
@@ -33,10 +30,6 @@ data Action = Nav Route MouseEvent
 
 type ChildSlots =
   ( home :: OpaqueSlot Unit
-  , midnightLispDoc :: OpaqueSlot Unit
-  , helloWorld :: OpaqueSlot Unit
-  , editor :: OpaqueSlot Unit
-  , image :: OpaqueSlot Unit
   )
 
 component
@@ -77,27 +70,11 @@ component =
       , case route of
           Just r -> case r of
             Route.Home ->
-              HH.slot_ (Proxy :: _ "home") unit Home.component unit
-
-            Route.MidnightLispDoc ->
-              HH.slot_ (Proxy :: _ "midnightLispDoc") unit Page.MidnightLispDoc.component unit
-
-            Route.HelloWorld ->
               HH.slot_
-                (Proxy :: _ "helloWorld")
-                unit
-                (App.MidnightHalogen.component "Hello World" HelloWorldSource.string)
-                unit
-
-            Route.Editor ->
-              HH.slot_
-                (Proxy :: _ "editor")
+                (Proxy :: _ "home")
                 unit
                 (App.MidnightHalogen.component "Editor" EditorSource.string)
                 unit
-
-            Route.Image ->
-              HH.slot_ (Proxy :: _ "image") unit ImageExample.component unit
 
           Nothing ->
             HH.div_ [ HH.text "Page not found." ]
@@ -119,9 +96,6 @@ component =
     constructionNoticeIfNotOnPage =
       case route of
         Just Route.Home ->
-          HH.div_ []
-
-        Just Route.MidnightLispDoc ->
           HH.div_ []
 
         _ ->
