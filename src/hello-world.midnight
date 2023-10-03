@@ -1,25 +1,12 @@
 (let
-  (
-    (list (lambda xs
+  ((list
+    (lambda xs
       xs))
 
-    (image-multiple (lambda images
-      (list 'image-multiple images)))
-
-    (rectangle (lambda (x y width height)
-      (image-multiple
-        (list 'image-line x y (+ x width) y)
-        (list 'image-line (+ x width) y (+ x width) (- y height))
-        (list 'image-line (+ x width) (- y height) x (- y height))
-        (list 'image-line x (- y height) x y))))
-
-    (border (rectangle -320 275 200 50))
-
-    (example-image
-      (image-multiple
-        border
-        (list 'image-string -300 250 "hello world")))
-  )
+  (example-display
+    (list
+      (list 'cursor-position 0 0)
+      (list 'text (list "hello-world")))))
 
   (lambda (system-input)
-    (list 'output-normal example-image 'store 'ephem)))
+    (list 'output-normal example-display 'store 'ephem)))

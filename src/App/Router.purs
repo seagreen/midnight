@@ -7,11 +7,14 @@ import App.Halogen (OpaqueSlot)
 import App.MidnightHalogen as App.MidnightHalogen
 import App.Route (Route)
 import App.Route as Route
+import App.UiComponent as UiComponent
 import Data.Maybe (Maybe(..))
 import Effect.Aff.Class (class MonadAff)
 import Generated.EditorSource as EditorSource
+import Generated.HelloWorldSource as HelloWorld
 import Halogen as H
 import Halogen.HTML as HH
+import Halogen.HTML.Core (HTML)
 import Halogen.HTML.Properties as HP
 import Type.Proxy (Proxy(..))
 import Web.UIEvent.MouseEvent (MouseEvent)
@@ -61,10 +64,11 @@ component =
 
   render :: State -> H.ComponentHTML Action ChildSlots m
   render { route } =
-    HH.div_
+    HH.div
+      [HP.class_ (H.ClassName "flex flex-col items-center mt-2")]
       [ HH.h1
-          [ HP.class_ (H.ClassName "font-black") ]
-          [ HH.text "Midnight System" ]
+          [HP.class_ (H.ClassName "text-xl font-bold")]
+          linkToHomeIfWereNotThere
       , case route of
           Just r -> case r of
             Route.Home ->
@@ -76,4 +80,18 @@ component =
 
           Nothing ->
             HH.div_ [ HH.text "Page not found." ]
+
       ]
+    where
+    linkToHomeIfWereNotThere :: forall w. Array (HTML w Action)
+    linkToHomeIfWereNotThere =
+      case route of
+        Just Route.Home ->
+          [ HH.text "Midnight System"
+          ]
+
+        _ ->
+          -- TODO: make blue
+          [ UiComponent.internalLink' Nav { route: Route.Home, label: HH.text "Midnight" }
+          , HH.text " System"
+          ]
