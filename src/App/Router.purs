@@ -11,7 +11,7 @@ import App.UiComponent as UiComponent
 import Data.Maybe (Maybe(..))
 import Effect.Aff.Class (class MonadAff)
 import Generated.EditorSource as EditorSource
-import Generated.HelloWorldSource as HelloWorld
+import Generated.HelloWorldSource as HelloWorldSource
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Core (HTML)
@@ -75,7 +75,7 @@ component =
               HH.slot_
                 (Proxy :: _ "home")
                 unit
-                (App.MidnightHalogen.component EditorSource.string)
+                (App.MidnightHalogen.component HelloWorldSource.string)
                 unit
 
           Nothing ->

@@ -139,7 +139,9 @@ component startingCode startingMoore =
     HH.div_
       [ case output of
           OutputCrash err ->
-            HH.p_ [ HH.text err ]
+            HH.p
+              [ HP.class_ (H.ClassName "mt-5") ]
+              [ HH.text err ]
 
           OutputSuccess { display } ->
             displayToHtml display
@@ -148,18 +150,21 @@ component startingCode startingMoore =
   renderDisplay :: forall slots. Output -> H.ComponentHTML Action slots m
   renderDisplay = case _ of
     OutputCrash _ ->
-      HH.p_
+      HH.p
+        [ HP.class_ (H.ClassName "mt-5") ]
         [ HH.text "No display present since the app is currently crashed." ]
 
     OutputSuccess { displaySexp } ->
       HH.textarea
-        [ HP.value (Sexp.prettyprintColsPrefer80 displaySexp)
+        [ HP.class_ (H.ClassName "mt-5")
+        , HP.value (Sexp.prettyprintColsPrefer80 displaySexp)
         , HP.disabled true
         ]
 
   renderStore :: forall slots. Output -> H.ComponentHTML Action slots m
   renderStore output =
-    HH.div_
+    HH.div
+      [ HP.class_ (H.ClassName "mt-5") ]
       [ case output of
           OutputCrash err ->
             HH.p_ [ HH.text err ]
@@ -178,7 +183,8 @@ component startingCode startingMoore =
 
   renderEphem :: forall slots. Output -> H.ComponentHTML Action slots m
   renderEphem output =
-    HH.div_
+    HH.div
+      [ HP.class_ (H.ClassName "mt-5") ]
       [ case output of
           OutputCrash err ->
             HH.p_ [ HH.text err ]
@@ -197,7 +203,8 @@ component startingCode startingMoore =
 
   renderSource :: forall slots. String -> H.ComponentHTML Action slots m
   renderSource currentlyRunning =
-    HH.div_
+    HH.div
+      [ HP.class_ (H.ClassName "mt-5") ]
       [ HH.p_
           [ HH.text "Ctrl-<enter> to relaunch." ]
       , HH.textarea
@@ -209,7 +216,7 @@ component startingCode startingMoore =
   renderButtons :: forall slots. Mode -> H.ComponentHTML Action slots m
   renderButtons currentMode =
     HH.div
-      [ HP.class_ (H.ClassName "md:flex md:flex-row md:justify-center mt-1") ]
+      [ HP.class_ (H.ClassName "md:flex md:flex-row md:justify-center space-x-2 mt-3") ]
       [ button Live
       , button Display
       , button Store
@@ -221,13 +228,14 @@ component startingCode startingMoore =
     button mode =
       HH.button
         ( if mode == currentMode then
-            [ HP.class_ (H.ClassName "btn btn-primary btn-ghost")
-            , HP.style "margin-right: 0.5em; cursor: revert"
+            [ HP.class_ (H.ClassName "rounded-full border border-black p-2 min-w-[70px]")
+            -- For some reason border-2 in Tailwind wasn't working with rounded buttons
+            , HP.style "border-width: 2px; cursor: revert; "
             ]
           else
             [ HE.onClick (\_ -> SwitchMode mode)
-            , HP.class_ (H.ClassName "btn btn-default btn-ghost")
-            , HP.style "margin-right: 0.5em"
+            , HP.class_ (H.ClassName "rounded-full border border-black p-2 min-w-[70px] shadow-custom hover:shadow-custom-hover")
+            , HP.style "border-width: 2px;"
             ]
         )
         [ HH.text (show mode) ]
