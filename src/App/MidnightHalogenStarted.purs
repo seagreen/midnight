@@ -264,7 +264,8 @@ component startingCode startingMoore =
             []
 
           Just e ->
-            [ HH.p_
+            [ HH.p
+                [ HP.class_ (H.ClassName "mt-5") ]
                 [ HH.text e ]
             ]
       )

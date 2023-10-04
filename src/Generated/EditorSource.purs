@@ -37,15 +37,6 @@ string =
         ('system-input-start-with-store store)
           (start-with-store store))))
 
-(define column-starting-point
-  'impl
-    -370)
-
-(define row-to-y
-  'impl
-    (lambda (row)
-      (- 370 (* row 25))))
-
 (define startup
   'impl
     (lambda (src)
@@ -108,7 +99,7 @@ string =
 ; ------------------------------------------------------------------------------
 ; view
 
-(define display-size-columns
+(define display-size-rows
   'impl
     30)
 
@@ -133,7 +124,7 @@ string =
       (list
         'text
         (list-take
-          display-size-columns
+          display-size-rows
           (list-drop (nat-decrement viewport-row) text)))))
 
 ; ------------------------------------------------------------------------------
@@ -236,7 +227,7 @@ string =
             (editor-set-viewport-row cursor-row editor))
 
           ; cursor offscreen low
-          ((>= cursor-row (+ viewport-row display-size-columns))
+          ((>= cursor-row (+ viewport-row display-size-rows))
             (editor-set-viewport-row cursor-row editor))
 
           ('t editor)))))
