@@ -127,7 +127,17 @@
         ('key-arrow-left  modified)   (arrow-left ed)
         ('key-arrow-right modified)   (arrow-right ed)
         ('key-page-up     modified)   (page-up ed)
-        ('key-page-down   modified)   (page-down ed))))
+        ('key-page-down   modified)   (page-down ed)
+        ('key-tab         modified)   (insert-tab ed))))
+
+(define insert-tab
+  'impl
+    (lambda (ed)
+      (editor-insert-char
+        codepoint-space
+        (editor-insert-char
+          codepoint-space
+          ed))))
 
 (define editor-insert-char
   'impl

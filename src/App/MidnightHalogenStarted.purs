@@ -309,6 +309,9 @@ handleLiveKey ev = do
           "PageDown" -> do
             step KeyPageDown
 
+          "Tab" -> do
+            step KeyTab
+
           _ ->
             pure unit
   where
