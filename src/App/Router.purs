@@ -75,7 +75,7 @@ component =
               HH.slot_
                 (Proxy :: _ "home")
                 unit
-                (App.MidnightHalogen.component HelloWorldSource.string)
+                (App.MidnightHalogen.component EditorSource.string)
                 unit
 
           Nothing ->

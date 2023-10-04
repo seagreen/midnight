@@ -393,4 +393,12 @@ displayToHtml display =
           else
             HH.text (CodePoints.singleton char)
       )
-      (CodePoints.toCodePointArray line)
+      ( padArray
+          (display.cursorPosition.x + 1)
+          (CodePoints.codePointFromChar ' ')
+          (CodePoints.toCodePointArray line)
+      )
+
+padArray :: forall a. Int -> a -> Array a -> Array a
+padArray n val arr =
+  arr <> Array.replicate (n - Array.length arr) val
