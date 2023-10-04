@@ -836,7 +836,7 @@ string =
             (list
               'token-int
               (string-to-int-or-crash (type-tag-add string-tag taken)))
-            (list 'token-symbol (codepoints-to-symbol taken)))
+            (list 'token-symbol (codepoints->symbol taken)))
           remaining))))
 
 ; Assumes a nonempty argument.
