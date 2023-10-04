@@ -204,7 +204,7 @@ string =
     (lambda (ed)
       (editor-modify-cursor
         (lambda (cursor)
-           ; TODO: don't allow below the end of the text
+           ; TODO: don't allow past the end of the text
           (grid-posn-modify-column (lambda (column) (increment column)) cursor))
         ed)))
 
@@ -221,23 +221,13 @@ string =
 (define cursor-up
   'impl
     (lambda (n ed)
-      (snap-viewport
+      (maybe-raise-viewport
         (editor-modify-cursor
           (lambda (cursor)
             (grid-posn-modify-row (lambda (row) (max 1 (- row n))) cursor))
           ed))))
 
-(define cursor-down
-  'impl
-    (lambda (n ed)
-      (snap-viewport
-        (editor-modify-cursor
-          (lambda (cursor)
-            ; TODO: don't allow below the end of the text
-            (grid-posn-modify-row (lambda (row) (+ row n)) cursor))
-          ed))))
-
-(define snap-viewport
+(define maybe-raise-viewport
   'impl
     (lambda (editor)
       (let
@@ -248,9 +238,35 @@ string =
           ((< cursor-row viewport-row)
             (editor-set-viewport-row cursor-row editor))
 
+          ('t editor)))))
+
+(define cursor-down
+  'impl
+    (lambda (n ed)
+      (maybe-lower-viewport
+        (editor-modify-cursor
+          (lambda (cursor)
+            ; TODO: don't allow below the end of the text
+            (grid-posn-modify-row (lambda (row) (+ row n)) cursor))
+          ed))))
+
+(define maybe-lower-viewport
+  'impl
+    (lambda (editor)
+      (let
+        ((cursor-row (grid-posn-row (editor-cursor editor)))
+         (viewport-row (editor-viewport-row editor))
+
+         ; If the cursor is on the last line of the viewport or below
+         ; then we move the viewport down.
+         ;
+         ; So for example if the viewport is on line 1 and is 10 rows high,
+         ; the lowest the cursor can get before we move the viewport is row 9.
+         (last-cursor-in-view (- (+ viewport-row display-size-rows) 2)))
+        (cond
           ; cursor offscreen low
-          ((>= cursor-row (+ viewport-row display-size-rows))
-            (editor-set-viewport-row cursor-row editor))
+          ((>= cursor-row last-cursor-in-view)
+            (editor-set-viewport-row (- (+ cursor-row 2) display-size-rows) editor))
 
           ('t editor)))))
 
