@@ -303,6 +303,12 @@ handleLiveKey ev = do
           "ArrowRight" -> do
             step (KeyArrow ArrowRight)
 
+          "PageUp" -> do
+            step KeyPageUp
+
+          "PageDown" -> do
+            step KeyPageDown
+
           _ ->
             pure unit
   where

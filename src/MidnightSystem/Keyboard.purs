@@ -18,6 +18,8 @@ data Key
   | KeyEnter
   | KeyBackspace
   | KeyArrow ArrowKey
+  | KeyPageUp
+  | KeyPageDown
 
 data ArrowKey
   = ArrowUp
@@ -58,6 +60,13 @@ toSexp keyInput =
 
         ArrowRight ->
           Sexp.List (Sexp.Symbol "key-arrow-right" : ctrlOrMeta : PsList.Nil)
+
+    KeyPageUp ->
+      Sexp.List (Sexp.Symbol "key-page-up" : ctrlOrMeta : PsList.Nil)
+
+    KeyPageDown ->
+      Sexp.List (Sexp.Symbol "key-page-down" : ctrlOrMeta : PsList.Nil)
+
   where
   ctrlOrMeta :: Sexp
   ctrlOrMeta =

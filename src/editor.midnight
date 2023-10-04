@@ -125,7 +125,9 @@
         ('key-arrow-up    modified)   (arrow-up ed)
         ('key-arrow-down  modified)   (arrow-down ed)
         ('key-arrow-left  modified)   (arrow-left ed)
-        ('key-arrow-right modified)   (arrow-right ed))))
+        ('key-arrow-right modified)   (arrow-right ed)
+        ('key-page-up     modified)   (page-up ed)
+        ('key-page-down   modified)   (page-down ed))))
 
 (define editor-insert-char
   'impl
@@ -165,21 +167,12 @@
 (define arrow-up
   'impl
     (lambda (ed)
-      (snap-viewport
-        (editor-modify-cursor
-          (lambda (cursor)
-            (grid-posn-modify-row (lambda (row) (max 1 (decrement row))) cursor))
-          ed))))
+      (cursor-up 1 ed)))
 
 (define arrow-down
   'impl
     (lambda (ed)
-      (snap-viewport
-        (editor-modify-cursor
-          (lambda (cursor)
-            ; TODO: don't allow below the end of the text
-            (grid-posn-modify-row (lambda (row) (increment row)) cursor))
-          ed))))
+      (cursor-down 1 ed)))
 
 (define arrow-left
   'impl
@@ -199,6 +192,35 @@
            ; TODO: don't allow below the end of the text
           (grid-posn-modify-column (lambda (column) (increment column)) cursor))
         ed)))
+
+(define page-up
+  'impl
+    (lambda (ed)
+      (cursor-up (- display-size-rows 2) ed)))
+
+(define page-down
+  'impl
+    (lambda (ed)
+      (cursor-down (- display-size-rows 2) ed)))
+
+(define cursor-up
+  'impl
+    (lambda (n ed)
+      (snap-viewport
+        (editor-modify-cursor
+          (lambda (cursor)
+            (grid-posn-modify-row (lambda (row) (max 1 (- row n))) cursor))
+          ed))))
+
+(define cursor-down
+  'impl
+    (lambda (n ed)
+      (snap-viewport
+        (editor-modify-cursor
+          (lambda (cursor)
+            ; TODO: don't allow below the end of the text
+            (grid-posn-modify-row (lambda (row) (+ row n)) cursor))
+          ed))))
 
 (define snap-viewport
   'impl
