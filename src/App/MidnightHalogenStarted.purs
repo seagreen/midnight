@@ -228,7 +228,7 @@ component startingCode startingMoore =
     button mode =
       HH.button
         ( if mode == currentMode then
-            [ HP.class_ (H.ClassName "rounded-full border border-black p-2 min-w-[70px]")
+            [ HP.class_ (H.ClassName "rounded-full border border-black p-2 min-w-[70px] shadow-custom-selected underline")
             -- For some reason border-2 in Tailwind wasn't working with rounded buttons
             , HP.style "border-width: 2px; cursor: revert; "
             ]
