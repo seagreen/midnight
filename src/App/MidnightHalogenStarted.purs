@@ -115,7 +115,8 @@ component startingCode startingMoore =
   render :: forall slots. State -> H.ComponentHTML Action slots m
   render { mode, currentlyRunning, moore, lastError } =
     HH.div_
-      [ renderButtons mode
+      [ renderAbout
+      , renderButtons mode
       , renderLastError lastError
       , case mode of
           Live ->
@@ -132,6 +133,21 @@ component startingCode startingMoore =
 
           Source ->
             renderSource currentlyRunning
+      ]
+
+  renderAbout :: forall slots. H.ComponentHTML Action slots m
+  renderAbout =
+    HH.div
+      [ HP.class_ (H.ClassName "md:flex md:flex-row md:justify-center mt-1") ]
+      [ HH.span_
+          [ HH.text "("
+          , HH.a
+              [ HP.href "https://domain-j.com/Midnight-System/uuid/9885fa97-705e-4d68-a0cb-329c3e4b233e"
+              , HP.class_ (H.ClassName "underline text-blue-600 hover:text-blue-800 visited:text-purple-600")
+              ]
+              [ HH.text "about" ]
+          , HH.text ")"
+          ]
       ]
 
   renderLive :: forall slots. Output -> H.ComponentHTML Action slots m
