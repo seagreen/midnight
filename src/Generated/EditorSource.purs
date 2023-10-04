@@ -202,11 +202,17 @@ string =
 (define arrow-right
   'impl
     (lambda (ed)
-      (editor-modify-cursor
-        (lambda (cursor)
-           ; TODO: don't allow past the end of the text
-          (grid-posn-modify-column (lambda (column) (increment column)) cursor))
-        ed)))
+      (let
+        ((current-row-length (string-length (editor-current-line ed)))
+         (cursor-col (grid-posn-column (editor-cursor ed))))
+        (if
+          (> cursor-col current-row-length)
+          ed
+          (editor-modify-cursor
+            (lambda (cursor)
+              (grid-posn-modify-column
+                (lambda (column) (increment column)) cursor))
+            ed)))))
 
 (define page-up
   'impl
@@ -269,6 +275,16 @@ string =
             (editor-set-viewport-row (- (+ cursor-row 2) display-size-rows) editor))
 
           ('t editor)))))
+
+; ------------------------------------------------------------------------------
+; editor helpers
+
+(define editor-current-line
+  'impl
+    (lambda (ed)
+      (list-get-by-index
+        (grid-posn-row (editor-cursor ed))
+        (editor-text ed))))
 
 ; ------------------------------------------------------------------------------
 ; editor
@@ -968,6 +984,15 @@ string =
     (lambda (str)
       (type-tag-get string-tag str)))
 
+(define string-length
+  'examples
+    (
+      (string-length "abc") 3
+    )
+  'impl
+    (lambda (str)
+      (list-length (string->list str))))
+
 (define string-append
   'examples
     (
@@ -1643,6 +1668,15 @@ string =
         (lambda (acc x) (cons x acc))
         ys
         (list-reverse xs))))
+
+(define list-get-by-index
+  'examples
+    (
+      (list-get-by-index 2 '(a b c)) b
+    )
+  'impl
+    (lambda (n xs)
+      (car (list-drop (nat-decrement n) xs))))
 
 (define list-take
   'examples
