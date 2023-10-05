@@ -26,6 +26,10 @@ npm run esbuild-dev-watch
 ```
 
 ```
+npm run tailwind-watch
+```
+
+```
 npm run generate-purs-watch
 ```
 
