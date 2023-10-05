@@ -21,6 +21,8 @@ data Key
   | KeyPageUp
   | KeyPageDown
   | KeyTab
+  | KeyHome
+  | KeyEnd
 
 data ArrowKey
   = ArrowUp
@@ -70,6 +72,12 @@ toSexp keyInput =
 
     KeyTab ->
       Sexp.List (Sexp.Symbol "key-tab" : ctrlOrMeta : PsList.Nil)
+
+    KeyHome ->
+      Sexp.List (Sexp.Symbol "key-home" : ctrlOrMeta : PsList.Nil)
+
+    KeyEnd ->
+      Sexp.List (Sexp.Symbol "key-end" : ctrlOrMeta : PsList.Nil)
   where
   ctrlOrMeta :: Sexp
   ctrlOrMeta =

@@ -143,7 +143,9 @@ string =
         ('key-arrow-right modified)   (arrow-right ed)
         ('key-page-up     modified)   (page-up ed)
         ('key-page-down   modified)   (page-down ed)
-        ('key-tab         modified)   (insert-tab ed))))
+        ('key-tab         modified)   (insert-tab ed)
+        ('key-home        modified)   (cursor-to-start-of-line ed)
+        ('key-end         modified)   (cursor-to-end-of-line ed))))
 
 (define insert-tab
   'impl
@@ -213,10 +215,10 @@ string =
   'impl
     (lambda (ed)
       (let
-        ((current-row-length (string-length (editor-current-line ed)))
+        ((current-line-length (string-length (editor-current-line ed)))
          (cursor-col (grid-posn-column (editor-cursor ed))))
         (if
-          (> cursor-col current-row-length)
+          (> cursor-col current-line-length)
           ed
           (editor-modify-cursor
             (lambda (cursor)
@@ -285,6 +287,25 @@ string =
             (editor-set-viewport-row (- (+ cursor-row 2) display-size-rows) editor))
 
           ('t editor)))))
+
+(define cursor-to-start-of-line
+  'impl
+    (lambda (ed)
+      (editor-modify-cursor
+        (lambda (cursor) (grid-posn-set-column 1 cursor))
+        ed)))
+
+(define cursor-to-end-of-line
+  'impl
+    (lambda (ed)
+      (let
+        ((current-line-length (string-length (editor-current-line ed))))
+        (editor-modify-cursor
+          (lambda (cursor)
+            (grid-posn-set-column
+              (+ 1 current-line-length)
+              cursor))
+          ed))))
 
 ; ------------------------------------------------------------------------------
 ; editor helpers
@@ -495,6 +516,16 @@ string =
   'impl
     (lambda (grid-posn)
       (cadr (type-tag-get grid-posn-tag grid-posn))))
+
+(define grid-posn-set-column
+  'impl
+    (lambda (col grid-posn)
+      (grid-posn-modify-column (lambda (_) col) grid-posn)))
+
+(define grid-posn-set-row
+  'impl
+    (lambda (row grid-posn)
+      (grid-posn-modify-row (lambda (_) row) grid-posn)))
 
 (define grid-posn-modify-column
   'impl

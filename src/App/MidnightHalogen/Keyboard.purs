@@ -52,6 +52,12 @@ toMidnightKeyNoModifier ev = do
       "Tab" ->
         Just KeyTab
 
+      "Home" ->
+        Just KeyHome
+
+      "End" ->
+        Just KeyEnd
+
       _ ->
         Nothing
   where
