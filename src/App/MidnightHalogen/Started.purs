@@ -1,4 +1,4 @@
-module App.MidnightHalogenStarted where
+module App.MidnightHalogen.Started where
 
 import Prelude
 
