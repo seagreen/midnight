@@ -115,8 +115,8 @@ string =
     (lambda (viewport-row cursor)
       (list
         'cursor-position
-        (nat-decrement (grid-posn-column cursor))
-        (- (grid-posn-row cursor) viewport-row))))
+        (grid-posn-column cursor)
+        (- (+ 1 (grid-posn-row cursor)) viewport-row))))
 
 (define view-text
   'impl

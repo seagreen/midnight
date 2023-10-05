@@ -314,7 +314,7 @@ displayToHtml display =
     fold
       ( Array.mapWithIndex
           ( \i line ->
-              if i == display.cursorPosition.y then
+              if i + 1 == display.cursorPosition.y then
                 addCursorToLine line <> [ HH.text "\n" ]
               else
                 [ HH.text (line <> "\n") ]
@@ -326,7 +326,7 @@ displayToHtml display =
   addCursorToLine line =
     Array.mapWithIndex
       ( \i char ->
-          if i == display.cursorPosition.x then
+          if i + 1 == display.cursorPosition.x then
             HH.span
               [ HP.class_ (H.ClassName "underline") ]
               [ HH.text (CodePoints.singleton char) ]
@@ -334,7 +334,7 @@ displayToHtml display =
             HH.text (CodePoints.singleton char)
       )
       ( padArray
-          (display.cursorPosition.x + 1)
+          display.cursorPosition.x
           (CodePoints.codePointFromChar ' ')
           (CodePoints.toCodePointArray line)
       )

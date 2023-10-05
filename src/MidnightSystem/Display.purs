@@ -5,9 +5,6 @@ import Prelude
 import Data.Array (fromFoldable)
 import Data.Array as Array
 import Data.Either (Either(..))
-import Data.Foldable (fold)
-import Data.Int as Int
-import Data.List (List)
 import Data.List ((:))
 import Data.List as PsList
 import Data.String as String
@@ -43,7 +40,7 @@ parseCursorPosition :: Sexp -> Either String { x :: Int, y :: Int }
 parseCursorPosition =
   case _ of
     Sexp.List (Sexp.Symbol "cursor-position" : Sexp.Int x : Sexp.Int y : PsList.Nil) -> do
-      Right { x, y }
+      Right { x: min displayWidth x, y: min displayHeight y }
 
     other ->
       Left ("Display cursor-position incorrect: " <> Sexp.print other)
