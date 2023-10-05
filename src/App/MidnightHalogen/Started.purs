@@ -2,6 +2,7 @@ module App.MidnightHalogen.Started where
 
 import Prelude
 
+import App.MidnightHalogen.Keyboard (isRelaunchRequested, toMidnightKey)
 import Data.Array as Array
 import Data.Either (Either(..))
 import Data.Foldable (fold)
@@ -9,9 +10,7 @@ import Data.Generic.Rep (class Generic)
 import Data.Maybe (Maybe(..))
 import Data.Newtype (unwrap)
 import Data.Show.Generic (genericShow)
-import Data.String as String
 import Data.String.CodePoints as CodePoints
-import Data.String.CodeUnits as CodeUnits
 import Effect.Class (class MonadEffect)
 import Halogen as H
 import Halogen.HTML as HH
@@ -23,7 +22,7 @@ import MidnightLang.Sexp as Sexp
 import MidnightSystem (Output(..), StartupFailure(..))
 import MidnightSystem as MidnightSystem
 import MidnightSystem.Display (Display)
-import MidnightSystem.Keyboard (ArrowKey(..), Key(..), Keyboard)
+import MidnightSystem.Keyboard (Keyboard)
 import MidnightSystem.Output as Output
 import Web.Event.Event as E
 import Web.HTML as Web.Html
@@ -101,16 +100,38 @@ component startingCode startingMoore =
       mode <- H.gets _.mode
       case mode of
         Live ->
-          handleLiveKey ev
+          case toMidnightKey ev of
+            Nothing ->
+              pure unit
+
+            Just key -> do
+              preventDefault ev
+              stepKey key
 
         Source ->
-          handleSourceKey ev
+          when (isRelaunchRequested ev) relaunchFromSource
 
         _ ->
           pure unit
 
     SetSource str -> do
       H.modify_ (\s -> s { currentlyRunning = str })
+
+    where
+    stepKey :: Keyboard -> H.HalogenM State Action slots o m Unit
+    stepKey key = do
+      Moore m <- H.gets _.moore
+      let Moore newM = m.step key
+      case newM.output of
+        OutputCrash e ->
+          H.modify_ (\s -> s { lastError = Just e })
+
+        OutputSuccess _ ->
+          H.modify_ (\s -> s { moore = Moore newM })
+
+    preventDefault :: KeyboardEvent -> H.HalogenM State Action slots o m Unit
+    preventDefault ev =
+      H.liftEffect $ E.preventDefault (KE.toEvent ev)
 
   render :: forall slots. State -> H.ComponentHTML Action slots m
   render { mode, currentlyRunning, moore, lastError } =
@@ -269,96 +290,6 @@ component startingCode startingMoore =
                 [ HH.text e ]
             ]
       )
-
-handleLiveKey
-  :: forall slots o m
-   . MonadEffect m
-  => KeyboardEvent
-  -> H.HalogenM State Action slots o m Unit
-handleLiveKey ev = do
-  case CodeUnits.uncons charStr of
-    Nothing ->
-      pure unit
-
-    Just { head } ->
-      if String.length charStr == 1 && intercept then
-        step (KeyChar head)
-      else
-        case charStr of
-          "Enter" ->
-            step KeyEnter
-
-          "Backspace" -> do
-            step KeyBackspace
-
-          "ArrowUp" -> do
-            step (KeyArrow ArrowUp)
-
-          "ArrowDown" -> do
-            step (KeyArrow ArrowDown)
-
-          "ArrowLeft" -> do
-            step (KeyArrow ArrowLeft)
-
-          "ArrowRight" -> do
-            step (KeyArrow ArrowRight)
-
-          "PageUp" -> do
-            step KeyPageUp
-
-          "PageDown" -> do
-            step KeyPageDown
-
-          "Tab" -> do
-            step KeyTab
-
-          _ ->
-            pure unit
-  where
-  step :: Key -> H.HalogenM State Action slots o m Unit
-  step key = do
-    preventDefault
-    Moore m <- H.gets _.moore
-    let Moore newM = m.step { key, ctrlOrMeta }
-    case newM.output of
-      OutputCrash e ->
-        H.modify_ (\s -> s { lastError = Just e })
-
-      OutputSuccess _ ->
-        H.modify_ (\s -> s { moore = Moore newM })
-
-  -- Eg we don't intercept ctrl-r
-  intercept :: Boolean
-  intercept =
-    not (KE.ctrlKey ev && KE.code ev == "KeyR")
-
-  charStr :: String
-  charStr =
-    KE.key ev
-
-  ctrlOrMeta :: Boolean
-  ctrlOrMeta =
-    KE.ctrlKey ev || KE.metaKey ev
-
-  preventDefault :: H.HalogenM State Action slots o m Unit
-  preventDefault =
-    H.liftEffect $ E.preventDefault (KE.toEvent ev)
-
-handleSourceKey
-  :: forall slots o m
-   . MonadEffect m
-  => KeyboardEvent
-  -> H.HalogenM State Action slots o m Unit
-handleSourceKey ev = do
-  when (charStr == "Enter" && ctrlOrMeta) relaunchFromSource
-  where
-  charStr :: String
-  charStr =
-    KE.key ev
-
-  ctrlOrMeta :: Boolean
-  ctrlOrMeta =
-    KE.ctrlKey ev || KE.metaKey ev
 
 relaunchFromSource
   :: forall slots o m. MonadEffect m => H.HalogenM State Action slots o m Unit
