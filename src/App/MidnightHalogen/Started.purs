@@ -133,6 +133,16 @@ component startingCode startingMoore =
     preventDefault ev =
       H.liftEffect $ E.preventDefault (KE.toEvent ev)
 
+    relaunchFromSource :: H.HalogenM State Action slots o m Unit
+    relaunchFromSource = do
+      str <- H.gets _.currentlyRunning
+      case MidnightSystem.moore str of
+        Left (StartupFailure e) ->
+          H.modify_ (\s -> s { lastError = Just e })
+
+        Right moore ->
+          H.modify_ (\s -> s { mode = Live, moore = moore })
+
   render :: forall slots. State -> H.ComponentHTML Action slots m
   render { mode, currentlyRunning, moore, lastError } =
     HH.div_
@@ -156,151 +166,140 @@ component startingCode startingMoore =
             renderSource currentlyRunning
       ]
 
-  renderAbout :: forall slots. H.ComponentHTML Action slots m
-  renderAbout =
-    HH.div
-      [ HP.class_ (H.ClassName "md:flex md:flex-row md:justify-center mt-1") ]
-      [ HH.span_
-          [ HH.text "("
-          , HH.a
-              [ HP.href "https://domain-j.com/Midnight-System/uuid/9885fa97-705e-4d68-a0cb-329c3e4b233e"
-              , HP.class_ (H.ClassName "underline text-blue-600 hover:text-blue-800 visited:text-purple-600")
-              ]
-              [ HH.text "about" ]
-          , HH.text ")"
-          ]
-      ]
-
-  renderLive :: forall slots. Output -> H.ComponentHTML Action slots m
-  renderLive output =
-    HH.div_
-      [ case output of
-          OutputCrash err ->
-            HH.p
-              [ HP.class_ (H.ClassName "mt-5") ]
-              [ HH.text err ]
-
-          OutputSuccess { display } ->
-            displayToHtml display
-      ]
-
-  renderDisplay :: forall slots. Output -> H.ComponentHTML Action slots m
-  renderDisplay = case _ of
-    OutputCrash _ ->
-      HH.p
-        [ HP.class_ (H.ClassName "mt-5") ]
-        [ HH.text "No display present since the app is currently crashed." ]
-
-    OutputSuccess { displaySexp } ->
-      HH.textarea
-        [ HP.class_ (H.ClassName "mt-5")
-        , HP.value (Sexp.prettyprintColsPrefer80 displaySexp)
-        , HP.disabled true
+renderAbout :: forall slots m. H.ComponentHTML Action slots m
+renderAbout =
+  HH.div
+    [ HP.class_ (H.ClassName "md:flex md:flex-row md:justify-center mt-1") ]
+    [ HH.span_
+        [ HH.text "("
+        , HH.a
+            [ HP.href "https://domain-j.com/Midnight-System/uuid/9885fa97-705e-4d68-a0cb-329c3e4b233e"
+            , HP.class_ (H.ClassName "underline text-blue-600 hover:text-blue-800 visited:text-purple-600")
+            ]
+            [ HH.text "about" ]
+        , HH.text ")"
         ]
+    ]
 
-  renderStore :: forall slots. Output -> H.ComponentHTML Action slots m
-  renderStore output =
-    HH.div
-      [ HP.class_ (H.ClassName "mt-5") ]
-      [ case output of
-          OutputCrash err ->
-            HH.p_ [ HH.text err ]
-
-          OutputSuccess { store } ->
-            case Output.foreignToSexp store of
-              Left e ->
-                HH.p_ [ HH.text ("Couldn't process store: " <> e) ]
-
-              Right sexp ->
-                HH.textarea
-                  [ HP.value (Sexp.prettyprintColsPrefer80 sexp)
-                  , HP.disabled true
-                  ]
-      ]
-
-  renderEphem :: forall slots. Output -> H.ComponentHTML Action slots m
-  renderEphem output =
-    HH.div
-      [ HP.class_ (H.ClassName "mt-5") ]
-      [ case output of
-          OutputCrash err ->
-            HH.p_ [ HH.text err ]
-
-          OutputSuccess { ephem } ->
-            case Output.foreignToSexpAllowClosures ephem of
-              Left e ->
-                HH.p_ [ HH.text ("Couldn't process ephem: " <> e) ]
-
-              Right sexp ->
-                HH.textarea
-                  [ HP.value (Sexp.prettyprintColsPrefer80 sexp)
-                  , HP.disabled true
-                  ]
-      ]
-
-  renderSource :: forall slots. String -> H.ComponentHTML Action slots m
-  renderSource currentlyRunning =
-    HH.div
-      [ HP.class_ (H.ClassName "mt-5") ]
-      [ HH.p_
-          [ HH.text "Ctrl-<enter> to relaunch." ]
-      , HH.textarea
-          [ HP.value currentlyRunning
-          , HE.onValueInput SetSource
+renderButtons :: forall slots m. Mode -> H.ComponentHTML Action slots m
+renderButtons currentMode =
+  HH.div
+    [ HP.class_ (H.ClassName "md:flex md:flex-row md:justify-center space-x-2 mt-3") ]
+    [ button Live
+    , button Display
+    , button Store
+    , button Ephem
+    , button Source
+    ]
+  where
+  button :: Mode -> H.ComponentHTML Action slots m
+  button mode =
+    HH.button
+      ( if mode == currentMode then
+          [ HP.class_ (H.ClassName "rounded-full border border-black p-2 min-w-[70px] shadow-custom-selected underline")
+          -- For some reason border-2 in Tailwind wasn't working with rounded buttons
+          , HP.style "border-width: 2px; cursor: revert; "
           ]
-      ]
-
-  renderButtons :: forall slots. Mode -> H.ComponentHTML Action slots m
-  renderButtons currentMode =
-    HH.div
-      [ HP.class_ (H.ClassName "md:flex md:flex-row md:justify-center space-x-2 mt-3") ]
-      [ button Live
-      , button Display
-      , button Store
-      , button Ephem
-      , button Source
-      ]
-    where
-    button :: Mode -> H.ComponentHTML Action slots m
-    button mode =
-      HH.button
-        ( if mode == currentMode then
-            [ HP.class_ (H.ClassName "rounded-full border border-black p-2 min-w-[70px] shadow-custom-selected underline")
-            -- For some reason border-2 in Tailwind wasn't working with rounded buttons
-            , HP.style "border-width: 2px; cursor: revert; "
-            ]
-          else
-            [ HE.onClick (\_ -> SwitchMode mode)
-            , HP.class_ (H.ClassName "rounded-full border border-black p-2 min-w-[70px] shadow-custom hover:shadow-custom-hover")
-            , HP.style "border-width: 2px;"
-            ]
-        )
-        [ HH.text (show mode) ]
-
-  renderLastError :: forall slots. Maybe String -> H.ComponentHTML Action slots m
-  renderLastError lastError =
-    HH.div_
-      ( case lastError of
-          Nothing ->
-            []
-
-          Just e ->
-            [ HH.p
-                [ HP.class_ (H.ClassName "mt-5") ]
-                [ HH.text e ]
-            ]
+        else
+          [ HE.onClick (\_ -> SwitchMode mode)
+          , HP.class_ (H.ClassName "rounded-full border border-black p-2 min-w-[70px] shadow-custom hover:shadow-custom-hover")
+          , HP.style "border-width: 2px;"
+          ]
       )
+      [ HH.text (show mode) ]
 
-relaunchFromSource
-  :: forall slots o m. MonadEffect m => H.HalogenM State Action slots o m Unit
-relaunchFromSource = do
-  str <- H.gets _.currentlyRunning
-  case MidnightSystem.moore str of
-    Left (StartupFailure e) ->
-      H.modify_ (\s -> s { lastError = Just e })
+renderLastError :: forall slots m. Maybe String -> H.ComponentHTML Action slots m
+renderLastError lastError =
+  HH.div_
+    ( case lastError of
+        Nothing ->
+          []
 
-    Right moore ->
-      H.modify_ (\s -> s { mode = Live, moore = moore })
+        Just e ->
+          [ HH.p
+              [ HP.class_ (H.ClassName "mt-5") ]
+              [ HH.text e ]
+          ]
+    )
+
+renderLive :: forall slots m. Output -> H.ComponentHTML Action slots m
+renderLive output =
+  HH.div_
+    [ case output of
+        OutputCrash err ->
+          HH.p
+            [ HP.class_ (H.ClassName "mt-5") ]
+            [ HH.text err ]
+
+        OutputSuccess { display } ->
+          displayToHtml display
+    ]
+
+renderDisplay :: forall slots m. Output -> H.ComponentHTML Action slots m
+renderDisplay = case _ of
+  OutputCrash _ ->
+    HH.p
+      [ HP.class_ (H.ClassName "mt-5") ]
+      [ HH.text "No display present since the app is currently crashed." ]
+
+  OutputSuccess { displaySexp } ->
+    HH.textarea
+      [ HP.class_ (H.ClassName "mt-5")
+      , HP.value (Sexp.prettyprintColsPrefer80 displaySexp)
+      , HP.disabled true
+      ]
+
+renderStore :: forall slots m. Output -> H.ComponentHTML Action slots m
+renderStore output =
+  HH.div
+    [ HP.class_ (H.ClassName "mt-5") ]
+    [ case output of
+        OutputCrash err ->
+          HH.p_ [ HH.text err ]
+
+        OutputSuccess { store } ->
+          case Output.foreignToSexp store of
+            Left e ->
+              HH.p_ [ HH.text ("Couldn't process store: " <> e) ]
+
+            Right sexp ->
+              HH.textarea
+                [ HP.value (Sexp.prettyprintColsPrefer80 sexp)
+                , HP.disabled true
+                ]
+    ]
+
+renderEphem :: forall slots m. Output -> H.ComponentHTML Action slots m
+renderEphem output =
+  HH.div
+    [ HP.class_ (H.ClassName "mt-5") ]
+    [ case output of
+        OutputCrash err ->
+          HH.p_ [ HH.text err ]
+
+        OutputSuccess { ephem } ->
+          case Output.foreignToSexpAllowClosures ephem of
+            Left e ->
+              HH.p_ [ HH.text ("Couldn't process ephem: " <> e) ]
+
+            Right sexp ->
+              HH.textarea
+                [ HP.value (Sexp.prettyprintColsPrefer80 sexp)
+                , HP.disabled true
+                ]
+    ]
+
+renderSource :: forall slots m. String -> H.ComponentHTML Action slots m
+renderSource currentlyRunning =
+  HH.div
+    [ HP.class_ (H.ClassName "mt-5") ]
+    [ HH.p_
+        [ HH.text "Ctrl-<enter> to relaunch." ]
+    , HH.textarea
+        [ HP.value currentlyRunning
+        , HE.onValueInput SetSource
+        ]
+    ]
 
 displayToHtml :: forall slots m. Display -> H.ComponentHTML Action slots m
 displayToHtml display =

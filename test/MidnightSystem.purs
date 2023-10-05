@@ -6,10 +6,7 @@ import Data.Either (Either(..))
 import Data.List ((:))
 import Data.List as PsList
 import Data.Maybe (Maybe(..), isJust)
-import Data.Newtype (unwrap)
-import Debug (spy)
 import Generated.EditorSource as EditorSource
-import Lib.Debug (crash)
 import Lib.Moore as Moore
 import MidnightBiwa as Biwa
 import MidnightLang.Sexp (Sexp)
@@ -18,7 +15,7 @@ import MidnightSystem (Output(..), StartupFailure(..))
 import MidnightSystem as MidnightSystem
 import MidnightSystem.Keyboard as Keyboard
 import Test.Spec (Spec, describe, it)
-import Test.Spec.Assertions (fail, shouldEqual, shouldNotSatisfy)
+import Test.Spec.Assertions (fail, shouldNotSatisfy)
 
 spec :: Spec Unit
 spec = do
@@ -43,7 +40,7 @@ spec = do
                     Left e ->
                       fail e
 
-                    Right expandedSexp -> do
+                    Right _expandedSexp -> do
                       -- _ <- pure (spy "macroexpanded" (Sexp.prettyprintColsPrefer80 expandedSexp))
                       pure unit
 
