@@ -231,9 +231,9 @@ extraBiwaCode =
 (define (int? a)
   (internal-biwa-to-midnight-bool (number? a)))
 
-(define (/-midnight-helper divident divisor)
+(define (/-midnight-helper dividend divisor)
   (let
-    ((quotient (quotient divident divisor)))
+    ((quotient (quotient dividend divisor)))
     (if
       (finite? quotient)
       quotient
