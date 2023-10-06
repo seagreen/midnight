@@ -466,17 +466,8 @@ string =
 ; ------------------------------------------------------------------------------
 ; text
 
-; a list of string
+; a list of strings
 ; where none of those strings contains newlines
-
-(define text-example
-  'impl
-    (string-concat
-      (list
-        abc
-        (codepoint->string codepoint-newline)
-        abc
-        (codepoint->string codepoint-newline))))
 
 (define string->text
   'examples
