@@ -132,20 +132,25 @@ string =
 
 (define update
   'impl
-    (lambda (keypress ed)
-      (case keypress
-        ('key-char        modified c) (editor-insert-char c ed)
-        ('key-enter       modified)   (editor-insert-newline ed)
-        ('key-backspace   modified)   (editor-delete ed)
-        ('key-arrow-up    modified)   (arrow-up ed)
-        ('key-arrow-down  modified)   (arrow-down ed)
-        ('key-arrow-left  modified)   (arrow-left ed)
-        ('key-arrow-right modified)   (arrow-right ed)
-        ('key-page-up     modified)   (page-up ed)
-        ('key-page-down   modified)   (page-down ed)
-        ('key-tab         modified)   (insert-tab ed)
-        ('key-home        modified)   (cursor-to-start-of-line ed)
-        ('key-end         modified)   (cursor-to-end-of-line ed))))
+    (let
+      ((csc
+        (lambda (ed_)
+          (editor-set-shadow-cursor-column none ed_))))
+
+      (lambda (keypress ed)
+        (case keypress
+          ('key-char        modified c) (csc (editor-insert-char c ed))
+          ('key-enter       modified)   (csc (editor-insert-newline ed))
+          ('key-backspace   modified)   (csc (editor-delete ed))
+          ('key-arrow-up    modified)   (arrow-up ed)
+          ('key-arrow-down  modified)   (arrow-down ed)
+          ('key-arrow-left  modified)   (csc (arrow-left ed))
+          ('key-arrow-right modified)   (csc (arrow-right ed))
+          ('key-page-up     modified)   (page-up ed)
+          ('key-page-down   modified)   (page-down ed)
+          ('key-tab         modified)   (csc (insert-tab ed))
+          ('key-home        modified)   (csc (cursor-to-start-of-line ed))
+          ('key-end         modified)   (csc (cursor-to-end-of-line ed))))))
 
 (define insert-tab
   'impl
@@ -240,10 +245,12 @@ string =
   'impl
     (lambda (n ed)
       (maybe-raise-viewport
-        (editor-modify-cursor
-          (lambda (cursor)
-            (grid-posn-modify-row (lambda (row) (max 1 (- row n))) cursor))
-          ed))))
+        (adjust-row-and-shadow-cursor
+          (grid-posn-column (editor-cursor ed))
+          (editor-modify-cursor
+            (lambda (cursor)
+              (grid-posn-modify-row (lambda (row) (max 1 (- row n))) cursor))
+            ed)))))
 
 (define maybe-raise-viewport
   'impl
@@ -262,11 +269,47 @@ string =
   'impl
     (lambda (n ed)
       (maybe-lower-viewport
-        (editor-modify-cursor
-          (lambda (cursor)
-            ; TODO: don't allow below the end of the text
-            (grid-posn-modify-row (lambda (row) (+ row n)) cursor))
-          ed))))
+        (adjust-row-and-shadow-cursor
+          (grid-posn-column (editor-cursor ed))
+          (editor-modify-cursor
+            (lambda (cursor)
+              ; TODO: don't allow below the end of the text
+              (grid-posn-modify-row (lambda (row) (+ row n)) cursor))
+            ed)))))
+
+; For example given the following rows:
+;
+; 1. long-row-with-the-cursor-at-the-end_
+; 2. short-row
+; 3. long-row-number-two-aaaaaaaaaaaaaaaaaaaaaaa
+;
+; ...with the cursor at the end of the first row.
+;
+; If we press the down arrow, we want the cursor to jump
+; to the end of row 2.
+;
+; If we then press it again we want it to jump to row 3,
+; but to the same column it started at originally from row 1.
+(define adjust-row-and-shadow-cursor
+  'impl
+    (lambda (column-before-vertical-move ed)
+      (let
+        ((desired-column (option-default
+                           (editor-shadow-cursor-column ed)
+                           column-before-vertical-move))
+
+         (new-line-length (string-length (editor-current-line ed))))
+
+        (if
+          (> desired-column (+ 1 new-line-length))
+          (editor-modify-cursor
+            (lambda (cursor)
+              (grid-posn-set-column (+ 1 new-line-length) cursor))
+            (editor-set-shadow-cursor-column (some desired-column) ed))
+          (editor-modify-cursor
+            (lambda (cursor)
+              (grid-posn-set-column desired-column cursor))
+            (editor-set-shadow-cursor-column none ed))))))
 
 (define maybe-lower-viewport
   'impl
@@ -320,7 +363,7 @@ string =
 ; ------------------------------------------------------------------------------
 ; editor
 ;
-; (struct editor (viewport-row cursor text))
+; (struct editor (viewport-row cursor shadow-cursor-column text))
 
 (define string->editor
   'impl
@@ -328,16 +371,18 @@ string =
       (editor-new
         1
         (column-and-row-to-grid-posn 1 1)
+        none
         (string->text str))))
 
 (define editor-new
   'impl
-    (lambda (viewport-row cursor text)
+    (lambda (viewport-row cursor shadow-cursor-column text)
       (type-tag-add
         editor-tag
         (dict-insert 'viewport-row viewport-row
           (dict-insert 'cursor cursor
-            (dict-singleton 'text text))))))
+            (dict-insert 'shadow-cursor-column shadow-cursor-column
+              (dict-singleton 'text text)))))))
 
 (define editor-viewport-row
   'impl
@@ -348,6 +393,13 @@ string =
   'impl
     (lambda (editor)
       (dict-lookup-or-crash 'cursor (type-tag-get editor-tag editor))))
+
+(define editor-shadow-cursor-column
+  'impl
+    (lambda (editor)
+      (dict-lookup-or-crash
+        'shadow-cursor-column
+        (type-tag-get editor-tag editor))))
 
 (define editor-text
   'impl
@@ -363,6 +415,13 @@ string =
   'impl
     (lambda (cursor editor)
       (editor-modify-cursor (lambda (_) cursor) editor)))
+
+(define editor-set-shadow-cursor-column
+  'impl
+    (lambda (shadow-cursor-column editor)
+      (editor-modify-shadow-cursor-column
+        (lambda (_) shadow-cursor-column)
+        editor)))
 
 (define editor-set-text
   'impl
@@ -382,6 +441,16 @@ string =
       (type-tag-add
         editor-tag
         (dict-update 'cursor f (type-tag-get editor-tag editor)))))
+
+(define editor-modify-shadow-cursor-column
+  'impl
+    (lambda (f editor)
+      (type-tag-add
+        editor-tag
+        (dict-update
+          'shadow-cursor-column
+          f
+          (type-tag-get editor-tag editor)))))
 
 (define editor-modify-text
   'impl
@@ -1521,6 +1590,33 @@ string =
   'impl
     (lambda (a)
       (list 'ok a)))
+
+; ------------------------------------------------------------------------------
+; option
+
+(define some
+  'impl
+    (lambda (a)
+      (list 'some a)))
+
+(define none
+  'impl
+    '(none))
+
+(define option-default
+  'examples
+    (
+      (option-default (some 'a) 'b) a
+      (option-default none      'b) b
+    )
+  'impl
+    (lambda (option def)
+      (case option
+        ('some a)
+          a
+
+        ('none)
+          def)))
 
 ; ------------------------------------------------------------------------------
 ; list
