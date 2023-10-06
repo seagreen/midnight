@@ -3,10 +3,10 @@
 ; ------------------------------------------------------------------------------
 
 (let
-  ((midnight-plus-define
+  ((midnight-plus-macros
     '(
 ; ------------------------------------------------------------------------------
-; midnight-plus-define
+; midnight-plus-macros
 ; ------------------------------------------------------------------------------
 
 (define main
@@ -2611,9 +2611,9 @@
   ; ----------------------------------------
   ; do the expansion
 
-  (midnight-plus-define-varlist
+  (midnight-plus-macros-varlist
     (list-reverse ; reverse the order of the defines
-      (defines-to-varlist midnight-plus-define)))
+      (defines-to-varlist midnight-plus-macros)))
 
   ; ----------------------------------------
   ; run example tests
@@ -2623,25 +2623,25 @@
       (
        ; An expression representing passing the defines to the test creator
        ;
-       ; Note that `midnight-plus-define` is the original source exactly,
+       ; Note that `midnight-plus-macros` is the original source exactly,
        ; no macroexpansion or anything like that.
        (test-generating-expr
-         (list 'defines->example-tests (list 'quote midnight-plus-define)))
+         (list 'defines->example-tests (list 'quote midnight-plus-macros)))
 
        ; Eval the above expression to get the tests
        (tests
-         (eval (to-let midnight-plus-define-varlist test-generating-expr))))
+         (eval (to-let midnight-plus-macros-varlist test-generating-expr))))
 
       ; Run the tests in the context of the original code
       (eval
-        (to-let midnight-plus-define-varlist tests))))
+        (to-let midnight-plus-macros-varlist tests))))
 
   ; ----------------------------------------
   ; run
 
   (midnight-let
     (to-let
-      midnight-plus-define-varlist
+      midnight-plus-macros-varlist
       'main))
   )
 
