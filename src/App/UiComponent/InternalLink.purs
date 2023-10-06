@@ -4,6 +4,7 @@ import Prelude
 
 import App.Route (Route)
 import App.Route as Route
+import Halogen as H
 import Halogen.HTML (HTML)
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
@@ -30,6 +31,7 @@ internalLink'
 internalLink' toAction a =
   HH.a
     [ HP.href (RD.print Route.codec a.route)
+    , HP.class_ (H.ClassName "underline text-blue-600 hover:text-blue-800 visited:text-purple-600")
     , HE.onClick (toAction a.route)
     ]
     [ a.label ]

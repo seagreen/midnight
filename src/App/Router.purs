@@ -91,7 +91,6 @@ component =
           ]
 
         _ ->
-          -- TODO: make blue
           [ InternalLink.internalLink' Nav { route: Route.Home, label: HH.text "Midnight" }
           , HH.text " System"
           ]
