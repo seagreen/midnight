@@ -233,10 +233,10 @@ extraBiwaCode =
 
 (define (/-midnight-helper dividend divisor)
   (let
-    ((quotient (quotient dividend divisor)))
+    ((q (quotient dividend divisor)))
     (if
-      (finite? quotient)
-      quotient
+      (finite? q)
+      q
       ('crash-quotient-not-finite))))
 
 (define (<-midnight-helper a b)
