@@ -7,7 +7,7 @@ import App.Halogen (OpaqueSlot)
 import App.MidnightHalogen as App.MidnightHalogen
 import App.Route (Route)
 import App.Route as Route
-import App.UiComponent as UiComponent
+import App.UiComponent.InternalLink as InternalLink
 import Data.Maybe (Maybe(..))
 import Effect.Aff.Class (class MonadAff)
 import Generated.EditorSource as EditorSource
@@ -65,9 +65,9 @@ component =
   render :: State -> H.ComponentHTML Action ChildSlots m
   render { route } =
     HH.div
-      [HP.class_ (H.ClassName "max-sm:ml-1 md:flex md:flex-col md:items-center mt-4")]
+      [ HP.class_ (H.ClassName "max-sm:ml-1 md:flex md:flex-col md:items-center mt-4") ]
       [ HH.h1
-          [HP.class_ (H.ClassName "text-xl font-bold")]
+          [ HP.class_ (H.ClassName "text-xl font-bold") ]
           linkToHomeIfWereNotThere
       , case route of
           Just r -> case r of
@@ -92,6 +92,6 @@ component =
 
         _ ->
           -- TODO: make blue
-          [ UiComponent.internalLink' Nav { route: Route.Home, label: HH.text "Midnight" }
+          [ InternalLink.internalLink' Nav { route: Route.Home, label: HH.text "Midnight" }
           , HH.text " System"
           ]
