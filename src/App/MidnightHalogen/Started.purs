@@ -243,11 +243,7 @@ renderDisplay = case _ of
       [ HH.text "No display present since the app is currently crashed." ]
 
   OutputSuccess { displaySexp } ->
-    HH.textarea
-      [ HP.class_ (H.ClassName "mt-5")
-      , HP.value (Sexp.prettyprintColsPrefer80 displaySexp)
-      , HP.disabled true
-      ]
+    codeBlock (Sexp.prettyprintColsPrefer80 displaySexp)
 
 renderStore :: forall slots m. Output -> H.ComponentHTML Action slots m
 renderStore output =
@@ -263,10 +259,7 @@ renderStore output =
               HH.p_ [ HH.text ("Couldn't process store: " <> e) ]
 
             Right sexp ->
-              HH.textarea
-                [ HP.value (Sexp.prettyprintColsPrefer80 sexp)
-                , HP.disabled true
-                ]
+              codeBlock (Sexp.prettyprintColsPrefer80 sexp)
     ]
 
 renderEphem :: forall slots m. Output -> H.ComponentHTML Action slots m
@@ -283,10 +276,7 @@ renderEphem output =
               HH.p_ [ HH.text ("Couldn't process ephem: " <> e) ]
 
             Right sexp ->
-              HH.textarea
-                [ HP.value (Sexp.prettyprintColsPrefer80 sexp)
-                , HP.disabled true
-                ]
+              codeBlock (Sexp.prettyprintColsPrefer80 sexp)
     ]
 
 renderSource :: forall slots m. String -> H.ComponentHTML Action slots m
@@ -297,6 +287,7 @@ renderSource currentlyRunning =
         [ HH.text "Ctrl-<enter> to relaunch." ]
     , HH.textarea
         [ HP.value currentlyRunning
+        , HP.class_ (H.ClassName "font-mono overflow-x-auto whitespace-pre min-w-[700px] h-screen p-4 bg-gray-50")
         , HE.onValueInput SetSource
         ]
     ]
@@ -342,3 +333,12 @@ displayToHtml display =
 padArray :: forall a. Int -> a -> Array a -> Array a
 padArray n val arr =
   arr <> Array.replicate (n - Array.length arr) val
+
+codeBlock :: forall slots m. String -> H.ComponentHTML Action slots m
+codeBlock code =
+  HH.pre
+    -- NOTE: maybe shouldn't put the mt-5 here:
+    [ HP.class_ (H.ClassName "bg-gray-100 rounded max-w-2xl overflow-x-auto mt-5") ]
+    [ HH.code_
+        [ HH.text code ]
+    ]
