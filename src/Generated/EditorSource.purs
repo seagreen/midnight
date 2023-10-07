@@ -179,7 +179,8 @@ string =
         (case keypress
           ('key-char        modified c) (csc (editor-insert-char c ed))
           ('key-enter       modified)   (csc (editor-insert-newline ed))
-          ('key-backspace   modified)   (csc (editor-delete ed))
+          ('key-backspace   modified)   (csc (editor-backspace ed))
+          ('key-delete      modified)   (csc (editor-delete ed))
           ('key-arrow-up    modified)   (arrow-up ed)
           ('key-arrow-down  modified)   (arrow-down ed)
           ('key-arrow-left  modified)   (csc (arrow-left ed))
@@ -225,16 +226,61 @@ string =
               (lambda (text) (text-insert-newline cursor text))
               ed))))))
 
-(define editor-delete
+(define editor-backspace
+  'impl
+    (lambda (ed)
+      (cond
+        ((> (grid-posn-column (editor-cursor ed)) 1)
+          (editor-backspace-delete-char ed))
+
+        ((> (grid-posn-row (editor-cursor ed)) 1)
+          (editor-backspace-delete-line ed))
+
+        ('t
+          ed))))
+
+(define editor-backspace-delete-char
   'impl
     (lambda (ed)
       (arrow-left
         (editor-modify-text
           (lambda (text)
-            (let
-              ((cursor (editor-cursor ed)))
-              (text-delete-at-location cursor text)))
+            (text-delete-at-location
+              (grid-posn-modify-column decrement (editor-cursor ed))
+              text))
           ed))))
+
+(define editor-backspace-delete-line
+  'impl
+    (lambda (ed)
+      (editor-modify-line-count
+        decrement
+        (editor-modify-text
+          (lambda (text)
+            (text-combine-line-with-next
+              (decrement (grid-posn-row (editor-cursor ed)))
+              text))
+          (cursor-to-end-of-line
+            (editor-modify-cursor
+              (lambda (cursor) (grid-posn-modify-row decrement cursor))
+              ed))))))
+
+(define editor-delete
+  'impl
+    (lambda (ed)
+      (cond
+        ((>= (current-line-length ed) (grid-posn-column (editor-cursor ed)))
+          (editor-delete-char ed))
+
+        ('t
+          ed))))
+
+(define editor-delete-char
+  'impl
+    (lambda (ed)
+      (editor-modify-text
+        (lambda (text) (text-delete-at-location (editor-cursor ed) text))
+        ed)))
 
 (define arrow-up
   'impl
@@ -392,6 +438,11 @@ string =
 
 ; ------------------------------------------------------------------------------
 ; editor helpers
+
+(define current-line-length
+  'impl
+    (lambda (ed)
+      (string-length (editor-current-line ed))))
 
 (define editor-current-line
   'impl
@@ -585,10 +636,31 @@ string =
             string-tag
             (lambda (xs)
               (list-drop-at-offset
-                (nat-decrement (nat-decrement (grid-posn-column grid-posn)))
+                (nat-decrement (grid-posn-column grid-posn))
                 xs))
             str))
         strs)))
+
+(define text-combine-line-with-next
+  'examples
+    (
+      (text-combine-line-with-next 1 (list "a" "b"))
+        ((string-tag (97 98)))
+    )
+  'impl
+    (lambda (n text)
+      (let
+        ((before-and-after (list-split-at-offset (nat-decrement n) text))
+         (all-before (car before-and-after))
+         (targets-and-after (cadr before-and-after))
+         (first-target (car targets-and-after))
+         (second-target (cadr targets-and-after))
+         (rest (cddr targets-and-after)))
+        (list-append
+          all-before
+          (cons
+            (string-append first-target second-target)
+            rest)))))
 
 (define text-insert-newline
   'examples
@@ -1716,6 +1788,11 @@ string =
     (lambda (xs)
       (car (cdr (cdr (cdr xs))))))
 
+(define cddr
+  'impl
+    (lambda (xs)
+      (cdr (cdr xs))))
+
 (define list
   'examples
     (
@@ -1811,6 +1888,15 @@ string =
         (pair? xs)
         (cons (car xs) (list-map-first f (cdr xs)))
         '())))
+
+(define list-last
+  'examples
+    (
+      (list-last '(a b c)) c
+    )
+  'impl
+    (lambda (xs)
+      (car (list-reverse xs))))
 
 (define list-reverse
   'examples

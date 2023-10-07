@@ -31,6 +31,9 @@ toMidnightKeyNoModifier ev = do
       "Backspace" ->
         Just KeyBackspace
 
+      "Delete" ->
+        Just KeyDelete
+
       "ArrowUp" ->
         Just (KeyArrow ArrowUp)
 

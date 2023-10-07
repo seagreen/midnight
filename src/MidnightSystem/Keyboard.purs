@@ -17,6 +17,7 @@ data Key
   = KeyChar Char
   | KeyEnter
   | KeyBackspace
+  | KeyDelete
   | KeyArrow ArrowKey
   | KeyPageUp
   | KeyPageDown
@@ -49,6 +50,9 @@ toSexp keyInput =
 
     KeyBackspace ->
       Sexp.List (Sexp.Symbol "key-backspace" : ctrlOrMeta : PsList.Nil)
+
+    KeyDelete ->
+      Sexp.List (Sexp.Symbol "key-delete" : ctrlOrMeta : PsList.Nil)
 
     KeyArrow arrow ->
       case arrow of
