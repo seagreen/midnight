@@ -593,25 +593,31 @@ string =
 (define text-insert-newline
   'examples
     (
-      (text-insert-newline (column-and-row-to-grid-posn 1 1) (list ""))
-        ((string-tag ()) (string-tag ()))
+      (text-insert-newline (column-and-row-to-grid-posn 1 1) (list "a"))
+        ((string-tag ()) (string-tag (97)))
     )
   'impl
     (lambda (grid-posn strs)
       (let
-        ((xs-and-ys
+        ((lines-before-split-and-rest
           (list-split-at-offset
             (nat-decrement (grid-posn-row grid-posn))
             strs))
-         (xs (car xs-and-ys))
-         (ys (cadr xs-and-ys)))
+         (lines-before-split (car lines-before-split-and-rest))
+         (split-line-and-after (cadr lines-before-split-and-rest)))
         (if
-          (list-empty? ys)
-          (list-append xs (list ""))
+          (list-empty? split-line-and-after)
+          (list-append lines-before-split (list ""))
           (let
-            ((before-and-after
-               (string-split-at-offset (grid-posn-column grid-posn) (car ys))))
-            (list-concat (list xs before-and-after (cdr ys))))))))
+            ((str-split-in-two
+              (string-split-at-offset
+                (nat-decrement (grid-posn-column grid-posn))
+                (car split-line-and-after))))
+            (list-concat
+              (list
+                lines-before-split
+                str-split-in-two
+                (cdr split-line-and-after))))))))
 
 ; ------------------------------------------------------------------------------
 ; grid-posn
