@@ -1,13 +1,49 @@
-; ------------------------------------------------------------------------------
-; begin with plain midnight
-; ------------------------------------------------------------------------------
-
 (let
-  ((midnight-plus-define
+  ((midnight-plus-macros
     '(
 ; ------------------------------------------------------------------------------
-; midnight-plus-define
+;
+;      MIDNIGHT System
+;
+;          Welcome.
+;
+; Try changing the "-" in the definition below to ">"
+; and then pressing ctrl-ENTER.
+;
+(define bottom-status-bar
+  'impl
+    (string-repeat 80 "-"))
+
+(define status-line
+  'impl
+    (lambda (editor)
+      (let
+        ((cursor
+          (string-concat
+            (list
+              "cursor: "
+              (int->string (grid-posn-column (editor-cursor editor)))
+              ", "
+              (int->string (grid-posn-row (editor-cursor editor))))))
+
+          (line-count
+            (string-append
+              "lines: "
+              (int->string (editor-line-count editor)))))
+        (string-pad-center
+          80
+          cursor
+          line-count))))
+
+(define view-status-area
+  'impl
+    (lambda (editor)
+      (list
+        bottom-status-bar
+        (status-line editor))))
+
 ; ------------------------------------------------------------------------------
+; main
 
 (define main
   'impl
@@ -21,15 +57,6 @@
 
         ('system-input-start-with-store store)
           (start-with-store store))))
-
-(define column-starting-point
-  'impl
-    -370)
-
-(define row-to-y
-  'impl
-    (lambda (row)
-      (- 370 (* row 25))))
 
 (define startup
   'impl
@@ -93,61 +120,69 @@
 ; ------------------------------------------------------------------------------
 ; view
 
-(define display-size-columns
+(define display-size-rows
   'impl
-    30)
+    28) ; actually 30, but 2 are taken up the the status area
 
 (define view
   'impl
     (lambda (editor)
       (list
-        'image-multiple
+        (view-cursor (editor-viewport-row editor) (editor-cursor editor))
         (list
-          (view-cursor (editor-viewport-row editor) (editor-cursor editor))
-          (view-text (editor-viewport-row editor) (editor-text editor))))))
+          'text
+          (list-append
+            (view-lines (editor-viewport-row editor) (editor-text editor))
+            (view-status-area editor))))))
 
 (define view-cursor
   'impl
     (lambda (viewport-row cursor)
-      (view-line
-        (- (grid-posn-row cursor) (nat-decrement viewport-row))
-        (list->string
-          (snoc
-            (list-replicate
-              (nat-decrement (grid-posn-column cursor))
-              codepoint-space)
-            codepoint-underscore)))))
+      (list
+        'cursor-position
+        (grid-posn-column cursor)
+        (- (+ 1 (grid-posn-row cursor)) viewport-row))))
 
-(define view-text
+(define view-lines
   'impl
     (lambda (viewport-row text)
-      (list
-        'image-multiple
-        (list-map-with-index
-          view-line
-          (list-take
-            display-size-columns
-            (list-drop (nat-decrement viewport-row) text))))))
-
-(define view-line
-  'impl
-    (lambda (row str)
-      (list 'image-string column-starting-point (row-to-y row) str)))
+      (list-take
+        display-size-rows
+        (list-drop (nat-decrement viewport-row) text))))
 
 ; ------------------------------------------------------------------------------
 ; update
 
 (define update
   'impl
-    (lambda (keypress ed)
-      (case keypress
-        ('key-char        modified c) (editor-insert-char c ed)
-        ('key-enter       modified)   (editor-insert-newline ed)
-        ('key-backspace   modified)   (editor-delete ed)
-        ('key-arrow-up    modified)   (arrow-up ed)
-        ('key-arrow-down  modified)   (arrow-down ed)
-        ('key-arrow-left  modified)   (arrow-left ed)
-        ('key-arrow-right modified)   (arrow-right ed))))
+    (let
+      ((csc
+        (lambda (ed_)
+          (editor-set-shadow-cursor-column none ed_))))
+
+      (lambda (keypress ed)
+        (case keypress
+          ('key-char        modified c) (csc (editor-insert-char c ed))
+          ('key-enter       modified)   (csc (editor-insert-newline ed))
+          ('key-backspace   modified)   (csc (editor-delete ed))
+          ('key-arrow-up    modified)   (arrow-up ed)
+          ('key-arrow-down  modified)   (arrow-down ed)
+          ('key-arrow-left  modified)   (csc (arrow-left ed))
+          ('key-arrow-right modified)   (csc (arrow-right ed))
+          ('key-page-up     modified)   (page-up ed)
+          ('key-page-down   modified)   (page-down ed)
+          ('key-tab         modified)   (csc (insert-tab ed))
+          ('key-home        modified)   (csc (cursor-to-start-of-line ed))
+          ('key-end         modified)   (csc (cursor-to-end-of-line ed))))))
+
+(define insert-tab
+  'impl
+    (lambda (ed)
+      (editor-insert-char
+        codepoint-space
+        (editor-insert-char
+          codepoint-space
+          ed))))
 
 (define editor-insert-char
   'impl
@@ -167,11 +202,13 @@
       (let
         ((cursor (editor-cursor ed))
          (row (grid-posn-row cursor)))
-        (editor-set-cursor
-          (column-and-row-to-grid-posn 1 (increment row))
-          (editor-modify-text
-            (lambda (text) (text-insert-newline cursor text))
-            ed)))))
+        (editor-modify-line-count
+          increment
+          (editor-set-cursor
+            (column-and-row-to-grid-posn 1 (increment row))
+            (editor-modify-text
+              (lambda (text) (text-insert-newline cursor text))
+              ed))))))
 
 (define editor-delete
   'impl
@@ -187,21 +224,12 @@
 (define arrow-up
   'impl
     (lambda (ed)
-      (snap-viewport
-        (editor-modify-cursor
-          (lambda (cursor)
-            (grid-posn-modify-row (lambda (row) (max 1 (decrement row))) cursor))
-          ed))))
+      (cursor-up 1 ed)))
 
 (define arrow-down
   'impl
     (lambda (ed)
-      (snap-viewport
-        (editor-modify-cursor
-          (lambda (cursor)
-            ; TODO: don't allow below the end of the text
-            (grid-posn-modify-row (lambda (row) (increment row)) cursor))
-          ed))))
+      (cursor-down 1 ed)))
 
 (define arrow-left
   'impl
@@ -216,13 +244,40 @@
 (define arrow-right
   'impl
     (lambda (ed)
-      (editor-modify-cursor
-        (lambda (cursor)
-           ; TODO: don't allow below the end of the text
-          (grid-posn-modify-column (lambda (column) (increment column)) cursor))
-        ed)))
+      (let
+        ((current-line-length (string-length (editor-current-line ed)))
+         (cursor-col (grid-posn-column (editor-cursor ed))))
+        (if
+          (> cursor-col current-line-length)
+          ed
+          (editor-modify-cursor
+            (lambda (cursor)
+              (grid-posn-modify-column
+                (lambda (column) (increment column)) cursor))
+            ed)))))
 
-(define snap-viewport
+(define page-up
+  'impl
+    (lambda (ed)
+      (cursor-up (- display-size-rows 2) ed)))
+
+(define page-down
+  'impl
+    (lambda (ed)
+      (cursor-down (- display-size-rows 2) ed)))
+
+(define cursor-up
+  'impl
+    (lambda (n ed)
+      (maybe-raise-viewport
+        (adjust-row-and-shadow-cursor
+          (grid-posn-column (editor-cursor ed))
+          (editor-modify-cursor
+            (lambda (cursor)
+              (grid-posn-modify-row (lambda (row) (max 1 (- row n))) cursor))
+            ed)))))
+
+(define maybe-raise-viewport
   'impl
     (lambda (editor)
       (let
@@ -233,16 +288,107 @@
           ((< cursor-row viewport-row)
             (editor-set-viewport-row cursor-row editor))
 
+          ('t editor)))))
+
+(define cursor-down
+  'impl
+    (lambda (n ed)
+      (maybe-lower-viewport
+        (adjust-row-and-shadow-cursor
+          (grid-posn-column (editor-cursor ed))
+          (editor-modify-cursor
+            (lambda (cursor)
+              ; TODO: don't allow below the end of the text
+              (grid-posn-modify-row (lambda (row) (+ row n)) cursor))
+            ed)))))
+
+; For example given the following rows:
+;
+; 1. long-row-with-the-cursor-at-the-end_
+; 2. short-row
+; 3. long-row-number-two-aaaaaaaaaaaaaaaaaaaaaaa
+;
+; ...with the cursor at the end of the first row.
+;
+; If we press the down arrow, we want the cursor to jump
+; to the end of row 2.
+;
+; If we then press it again we want it to jump to row 3,
+; but to the same column it started at originally from row 1.
+(define adjust-row-and-shadow-cursor
+  'impl
+    (lambda (column-before-vertical-move ed)
+      (let
+        ((desired-column (option-default
+                           (editor-shadow-cursor-column ed)
+                           column-before-vertical-move))
+
+         (new-line-length (string-length (editor-current-line ed))))
+
+        (if
+          (> desired-column (+ 1 new-line-length))
+          (editor-modify-cursor
+            (lambda (cursor)
+              (grid-posn-set-column (+ 1 new-line-length) cursor))
+            (editor-set-shadow-cursor-column (some desired-column) ed))
+          (editor-modify-cursor
+            (lambda (cursor)
+              (grid-posn-set-column desired-column cursor))
+            (editor-set-shadow-cursor-column none ed))))))
+
+(define maybe-lower-viewport
+  'impl
+    (lambda (editor)
+      (let
+        ((cursor-row (grid-posn-row (editor-cursor editor)))
+         (viewport-row (editor-viewport-row editor))
+
+         ; If the cursor is on the last line of the viewport or below
+         ; then we move the viewport down.
+         ;
+         ; So for example if the viewport is on line 1 and is 10 rows high,
+         ; the lowest the cursor can get before we move the viewport is row 9.
+         (last-cursor-in-view (- (+ viewport-row display-size-rows) 2)))
+        (cond
           ; cursor offscreen low
-          ((>= cursor-row (+ viewport-row display-size-columns))
-            (editor-set-viewport-row cursor-row editor))
+          ((>= cursor-row last-cursor-in-view)
+            (editor-set-viewport-row (- (+ cursor-row 2) display-size-rows) editor))
 
           ('t editor)))))
+
+(define cursor-to-start-of-line
+  'impl
+    (lambda (ed)
+      (editor-modify-cursor
+        (lambda (cursor) (grid-posn-set-column 1 cursor))
+        ed)))
+
+(define cursor-to-end-of-line
+  'impl
+    (lambda (ed)
+      (let
+        ((current-line-length (string-length (editor-current-line ed))))
+        (editor-modify-cursor
+          (lambda (cursor)
+            (grid-posn-set-column
+              (+ 1 current-line-length)
+              cursor))
+          ed))))
+
+; ------------------------------------------------------------------------------
+; editor helpers
+
+(define editor-current-line
+  'impl
+    (lambda (ed)
+      (list-get-by-index
+        (grid-posn-row (editor-cursor ed))
+        (editor-text ed))))
 
 ; ------------------------------------------------------------------------------
 ; editor
 ;
-; (struct editor (viewport-row cursor text))
+; (struct editor (viewport-row cursor shadow-cursor-column text line-count))
 
 (define string->editor
   'impl
@@ -250,16 +396,19 @@
       (editor-new
         1
         (column-and-row-to-grid-posn 1 1)
+        none
         (string->text str))))
 
 (define editor-new
   'impl
-    (lambda (viewport-row cursor text)
+    (lambda (viewport-row cursor shadow-cursor-column text)
       (type-tag-add
         editor-tag
         (dict-insert 'viewport-row viewport-row
           (dict-insert 'cursor cursor
-            (dict-singleton 'text text))))))
+            (dict-insert 'shadow-cursor-column shadow-cursor-column
+              (dict-insert 'text text
+                (dict-singleton 'line-count (list-length text)))))))))
 
 (define editor-viewport-row
   'impl
@@ -271,10 +420,22 @@
     (lambda (editor)
       (dict-lookup-or-crash 'cursor (type-tag-get editor-tag editor))))
 
+(define editor-shadow-cursor-column
+  'impl
+    (lambda (editor)
+      (dict-lookup-or-crash
+        'shadow-cursor-column
+        (type-tag-get editor-tag editor))))
+
 (define editor-text
   'impl
     (lambda (editor)
       (dict-lookup-or-crash 'text (type-tag-get editor-tag editor))))
+
+(define editor-line-count
+  'impl
+    (lambda (editor)
+      (dict-lookup-or-crash 'line-count (type-tag-get editor-tag editor))))
 
 (define editor-set-viewport-row
   'impl
@@ -286,10 +447,22 @@
     (lambda (cursor editor)
       (editor-modify-cursor (lambda (_) cursor) editor)))
 
+(define editor-set-shadow-cursor-column
+  'impl
+    (lambda (shadow-cursor-column editor)
+      (editor-modify-shadow-cursor-column
+        (lambda (_) shadow-cursor-column)
+        editor)))
+
 (define editor-set-text
   'impl
     (lambda (text editor)
       (editor-modify-text (lambda (_) text) editor)))
+
+(define editor-set-line-count
+  'impl
+    (lambda (count editor)
+      (editor-modify-line-count (lambda (_) count) editor)))
 
 (define editor-modify-viewport-row
   'impl
@@ -305,12 +478,29 @@
         editor-tag
         (dict-update 'cursor f (type-tag-get editor-tag editor)))))
 
+(define editor-modify-shadow-cursor-column
+  'impl
+    (lambda (f editor)
+      (type-tag-add
+        editor-tag
+        (dict-update
+          'shadow-cursor-column
+          f
+          (type-tag-get editor-tag editor)))))
+
 (define editor-modify-text
   'impl
     (lambda (f editor)
       (type-tag-add
         editor-tag
         (dict-update 'text f (type-tag-get editor-tag editor)))))
+
+(define editor-modify-line-count
+  'impl
+    (lambda (f editor)
+      (type-tag-add
+        editor-tag
+        (dict-update 'line-count f (type-tag-get editor-tag editor)))))
 
 (define editor-tag
   'impl
@@ -319,17 +509,8 @@
 ; ------------------------------------------------------------------------------
 ; text
 
-; a list of string
+; a list of strings
 ; where none of those strings contains newlines
-
-(define text-example
-  'impl
-    (string-concat
-      (list
-        abc
-        (codepoint->string codepoint-newline)
-        abc
-        (codepoint->string codepoint-newline))))
 
 (define string->text
   'examples
@@ -397,25 +578,31 @@
 (define text-insert-newline
   'examples
     (
-      (text-insert-newline (column-and-row-to-grid-posn 1 1) (list ""))
-        ((string-tag ()) (string-tag ()))
+      (text-insert-newline (column-and-row-to-grid-posn 1 1) (list "a"))
+        ((string-tag ()) (string-tag (97)))
     )
   'impl
     (lambda (grid-posn strs)
       (let
-        ((xs-and-ys
+        ((lines-before-split-and-rest
           (list-split-at-offset
             (nat-decrement (grid-posn-row grid-posn))
             strs))
-         (xs (car xs-and-ys))
-         (ys (cadr xs-and-ys)))
+         (lines-before-split (car lines-before-split-and-rest))
+         (split-line-and-after (cadr lines-before-split-and-rest)))
         (if
-          (list-empty? ys)
-          (list-append xs (list ""))
+          (list-empty? split-line-and-after)
+          (list-append lines-before-split (list ""))
           (let
-            ((before-and-after
-               (string-split-at-offset (grid-posn-column grid-posn) (car ys))))
-            (list-concat (list xs before-and-after (cdr ys))))))))
+            ((str-split-in-two
+              (string-split-at-offset
+                (nat-decrement (grid-posn-column grid-posn))
+                (car split-line-and-after))))
+            (list-concat
+              (list
+                lines-before-split
+                str-split-in-two
+                (cdr split-line-and-after))))))))
 
 ; ------------------------------------------------------------------------------
 ; grid-posn
@@ -438,6 +625,16 @@
   'impl
     (lambda (grid-posn)
       (cadr (type-tag-get grid-posn-tag grid-posn))))
+
+(define grid-posn-set-column
+  'impl
+    (lambda (col grid-posn)
+      (grid-posn-modify-column (lambda (_) col) grid-posn)))
+
+(define grid-posn-set-row
+  'impl
+    (lambda (row grid-posn)
+      (grid-posn-modify-row (lambda (_) row) grid-posn)))
 
 (define grid-posn-modify-column
   'impl
@@ -843,7 +1040,7 @@
             (list
               'token-int
               (string-to-int-or-crash (type-tag-add string-tag taken)))
-            (list 'token-symbol (codepoints-to-symbol taken)))
+            (list 'token-symbol (codepoints->symbol taken)))
           remaining))))
 
 ; Assumes a nonempty argument.
@@ -925,6 +1122,31 @@
   'impl
     (list->string '(97 98 99)))
 
+(define string-pad-center
+  'examples
+    (
+      (string-pad-center 5 "a" "z") (string-tag (97 32 32 32 122))
+    )
+  'impl
+    (lambda (n left right)
+      (let 
+        ((spaces-to-add
+            (- (- n (string-length left)) (string-length right))))
+        (string-concat
+          (list
+            left
+            (string-repeat spaces-to-add " ")
+            right)))))
+
+(define string-repeat
+  'examples
+    (
+      (string-repeat 2 "ab") (string-tag (97 98 97 98))
+    )
+  'impl
+    (lambda (n str)
+      (string-concat (list-replicate n str))))
+
 ; AKA codepoints->string
 (define list->string
   'impl
@@ -936,6 +1158,15 @@
   'impl
     (lambda (str)
       (type-tag-get string-tag str)))
+
+(define string-length
+  'examples
+    (
+      (string-length "abc") 3
+    )
+  'impl
+    (lambda (str)
+      (list-length (string->list str))))
 
 (define string-append
   'examples
@@ -1426,6 +1657,33 @@
       (list 'ok a)))
 
 ; ------------------------------------------------------------------------------
+; option
+
+(define some
+  'impl
+    (lambda (a)
+      (list 'some a)))
+
+(define none
+  'impl
+    '(none))
+
+(define option-default
+  'examples
+    (
+      (option-default (some 'a) 'b) a
+      (option-default none      'b) b
+    )
+  'impl
+    (lambda (option def)
+      (case option
+        ('some a)
+          a
+
+        ('none)
+          def)))
+
+; ------------------------------------------------------------------------------
 ; list
 
 (define cadr
@@ -1612,6 +1870,15 @@
         (lambda (acc x) (cons x acc))
         ys
         (list-reverse xs))))
+
+(define list-get-by-index
+  'examples
+    (
+      (list-get-by-index 2 '(a b c)) b
+    )
+  'impl
+    (lambda (n xs)
+      (car (list-drop (nat-decrement n) xs))))
 
 (define list-take
   'examples
@@ -1928,6 +2195,57 @@
               (loop (f acc next) (increment next))))))
         (loop start 0))))
 
+(define int->string
+  'examples
+    (
+      (int->string 0) (string-tag (48))
+      (int->string 12) (string-tag (49 50))
+      (int->string -12) (string-tag (45 49 50))
+    )
+  'impl
+    (lambda (n)
+      (let
+        ((digits (list-map digit->codepoint (int->list-digit n))))
+        (list->string
+          (if
+            (< n 0)
+            (cons (string-to-codepoint "-") digits)
+            digits)))))
+
+; Won't include the '-' sign for negative numbers.
+(define int->list-digit
+  'impl
+    (lambda (n)
+      (let
+        ((go
+          (lambda (n acc)
+            (if
+              (< n 10)
+              (cons n acc)
+              (go (/ n 10) (cons (% n 10) acc))))))
+        (go (abs n) '()))))
+
+(define digit->codepoint
+  'examples
+    (
+      (digit->codepoint 0) 48
+      (digit->codepoint 9) 57
+    )
+  'impl
+    (lambda (d)
+      (cond
+        ((= d 0) 48)
+        ((= d 1) 49)
+        ((= d 2) 50)
+        ((= d 3) 51)
+        ((= d 4) 52)
+        ((= d 5) 53)
+        ((= d 6) 54)
+        ((= d 7) 55)
+        ((= d 8) 56)
+        ((= d 9) 57)
+        ('t (crash 'digit->codepoint-not-digit)))))
+
 (define <=
   'examples
     ( (<= 1 2) t
@@ -1981,6 +2299,15 @@
         (> x y)
         x
         y)))
+
+; absolute value
+(define abs
+  'impl
+    (lambda (n)
+      (if
+        (< n 0)
+        (* n -1)
+        n)))
 
 (define negate
   'impl
@@ -2424,9 +2751,9 @@
   ; ----------------------------------------
   ; do the expansion
 
-  (midnight-plus-define-varlist
+  (midnight-plus-macros-varlist
     (list-reverse ; reverse the order of the defines
-      (defines-to-varlist midnight-plus-define)))
+      (defines-to-varlist midnight-plus-macros)))
 
   ; ----------------------------------------
   ; run example tests
@@ -2436,25 +2763,25 @@
       (
        ; An expression representing passing the defines to the test creator
        ;
-       ; Note that `midnight-plus-define` is the original source exactly,
+       ; Note that `midnight-plus-macros` is the original source exactly,
        ; no macroexpansion or anything like that.
        (test-generating-expr
-         (list 'defines->example-tests (list 'quote midnight-plus-define)))
+         (list 'defines->example-tests (list 'quote midnight-plus-macros)))
 
        ; Eval the above expression to get the tests
        (tests
-         (eval (to-let midnight-plus-define-varlist test-generating-expr))))
+         (eval (to-let midnight-plus-macros-varlist test-generating-expr))))
 
       ; Run the tests in the context of the original code
       (eval
-        (to-let midnight-plus-define-varlist tests))))
+        (to-let midnight-plus-macros-varlist tests))))
 
   ; ----------------------------------------
   ; run
 
   (midnight-let
     (to-let
-      midnight-plus-define-varlist
+      midnight-plus-macros-varlist
       'main))
   )
 

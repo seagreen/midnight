@@ -3,7 +3,7 @@ module App.MidnightHalogen where
 import Prelude
 
 import App.Halogen (OpaqueSlot)
-import App.MidnightHalogenStarted as App.MidnightHalogenStarted
+import App.MidnightHalogen.Started as App.MidnightHalogen.Started
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
 import Data.Time.Duration (Milliseconds(..))
@@ -33,9 +33,8 @@ component
   :: forall q i o m
    . MonadAff m
   => String
-  -> String
   -> H.Component q i o m
-component name startingCode =
+component startingCode =
   H.mkComponent
     { initialState: \_ -> Starting
     , render: render
@@ -72,8 +71,7 @@ component name startingCode =
   render :: State -> H.ComponentHTML Action ChildSlots m
   render state =
     HH.div_
-      [ HH.h2_ [ HH.text name ]
-      , case state of
+      [ case state of
           Unstarted ->
             HH.p_ [ HH.text "Unstarted" ] -- This should never show
 
@@ -84,5 +82,5 @@ component name startingCode =
             HH.p_ [ HH.text ("Error at startup: " <> e) ]
 
           Running moore ->
-            HH.slot_ (Proxy :: _ "running") unit (App.MidnightHalogenStarted.component startingCode moore) unit
+            HH.slot_ (Proxy :: _ "running") unit (App.MidnightHalogen.Started.component startingCode moore) unit
       ]

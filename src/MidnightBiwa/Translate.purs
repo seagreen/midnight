@@ -42,7 +42,7 @@ midnightToBiwaMap =
     -- Symbol
     , Tuple "symbol?" "symbol?-midnight-helper"
     , Tuple "symbol-eq?" "symbol-eq?"
-    , Tuple "codepoints-to-symbol" "codepoints-to-symbol-midnight-helper"
+    , Tuple "codepoints->symbol" "codepoints->symbol-midnight-helper"
 
     -- Int
     , Tuple "int?" "int?"
@@ -50,6 +50,7 @@ midnightToBiwaMap =
     , Tuple "-" "-"
     , Tuple "*" "*"
     , Tuple "/" "/-midnight-helper"
+    , Tuple "%" "modulo"
     , Tuple "<" "<-midnight-helper"
     , Tuple "=" "=-midnight-helper"
     , Tuple ">" ">-midnight-helper"
@@ -219,7 +220,7 @@ extraBiwaCode =
     (internal-biwa-to-midnight-bool (eqv? a b))
     (TODO-symbol?-eq-not-symbol)))
 
-(define (codepoints-to-symbol-midnight-helper codepoints)
+(define (codepoints->symbol-midnight-helper codepoints)
   (let*
     ((str (list->string (map integer->char codepoints)))
      (res (assoc str translation-alist-midnight-internal)))
@@ -231,12 +232,12 @@ extraBiwaCode =
 (define (int? a)
   (internal-biwa-to-midnight-bool (number? a)))
 
-(define (/-midnight-helper divident divisor)
+(define (/-midnight-helper dividend divisor)
   (let
-    ((quotient (quotient divident divisor)))
+    ((q (quotient dividend divisor)))
     (if
-      (finite? quotient)
-      quotient
+      (finite? q)
+      q
       ('crash-quotient-not-finite))))
 
 (define (<-midnight-helper a b)

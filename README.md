@@ -2,7 +2,9 @@
 
 A minimalist lisp language and computing environment that runs in the browser.
 
-For more information see https://midnightsystem.com
+Live: https://midnightsystem.com
+
+Docs: https://domain-j.com/Midnight-System/uuid/9885fa97-705e-4d68-a0cb-329c3e4b233e
 
 # Development model
 
@@ -21,6 +23,10 @@ In separate terminals:
 
 ```
 npm run esbuild-dev-watch
+```
+
+```
+npm run tailwind-watch
 ```
 
 ```

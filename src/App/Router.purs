@@ -4,13 +4,10 @@ import Prelude
 
 import App.Capability.Navigate (class Navigate, navTo)
 import App.Halogen (OpaqueSlot)
-import App.Home as Home
-import App.ImageExample as ImageExample
 import App.MidnightHalogen as App.MidnightHalogen
-import App.Page.MidnightLispDoc as Page.MidnightLispDoc
 import App.Route (Route)
 import App.Route as Route
-import App.UiComponent as UiComponent
+import App.UiComponent.InternalLink as InternalLink
 import Data.Maybe (Maybe(..))
 import Effect.Aff.Class (class MonadAff)
 import Generated.EditorSource as EditorSource
@@ -33,10 +30,6 @@ data Action = Nav Route MouseEvent
 
 type ChildSlots =
   ( home :: OpaqueSlot Unit
-  , midnightLispDoc :: OpaqueSlot Unit
-  , helloWorld :: OpaqueSlot Unit
-  , editor :: OpaqueSlot Unit
-  , image :: OpaqueSlot Unit
   )
 
 component
@@ -71,36 +64,23 @@ component =
 
   render :: State -> H.ComponentHTML Action ChildSlots m
   render { route } =
-    HH.div_
-      [ HH.h1_ linkToHomeIfWereNotThere
-      , constructionNoticeIfNotOnPage
+    HH.div
+      [ HP.class_ (H.ClassName "max-sm:ml-1 md:flex md:flex-col md:items-center mt-4") ]
+      [ HH.h1
+          [ HP.class_ (H.ClassName "text-xl font-bold") ]
+          linkToHomeIfWereNotThere
       , case route of
           Just r -> case r of
             Route.Home ->
-              HH.slot_ (Proxy :: _ "home") unit Home.component unit
-
-            Route.MidnightLispDoc ->
-              HH.slot_ (Proxy :: _ "midnightLispDoc") unit Page.MidnightLispDoc.component unit
-
-            Route.HelloWorld ->
               HH.slot_
-                (Proxy :: _ "helloWorld")
+                (Proxy :: _ "home")
                 unit
-                (App.MidnightHalogen.component "Hello World" HelloWorldSource.string)
+                (App.MidnightHalogen.component EditorSource.string)
                 unit
-
-            Route.Editor ->
-              HH.slot_
-                (Proxy :: _ "editor")
-                unit
-                (App.MidnightHalogen.component "Editor" EditorSource.string)
-                unit
-
-            Route.Image ->
-              HH.slot_ (Proxy :: _ "image") unit ImageExample.component unit
 
           Nothing ->
             HH.div_ [ HH.text "Page not found." ]
+
       ]
     where
     linkToHomeIfWereNotThere :: forall w. Array (HTML w Action)
@@ -111,26 +91,6 @@ component =
           ]
 
         _ ->
-          [ UiComponent.internalLink' Nav { route: Route.Home, label: HH.text "Midnight" }
+          [ InternalLink.internalLink' Nav { route: Route.Home, label: HH.text "Midnight" }
           , HH.text " System"
           ]
-
-    constructionNoticeIfNotOnPage :: H.ComponentHTML Action ChildSlots m
-    constructionNoticeIfNotOnPage =
-      case route of
-        Just Route.Home ->
-          HH.div_ []
-
-        Just Route.MidnightLispDoc ->
-          HH.div_ []
-
-        _ ->
-          HH.div_
-            [ HH.p_
-                [ HH.text "⚠️Construction notice: see "
-                , HH.a
-                    [ HP.href "https://github.com/seagreen/midnight/issues/1" ]
-                    [ HH.text "this issue" ]
-                , HH.text " for details"
-                ]
-            ]

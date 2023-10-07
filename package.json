@@ -21,7 +21,8 @@
     "test-watch": "npm run test -- --watch",
     "bench": "spago run --main Bench.Main",
     "generate-purs": "./generate-purs",
-    "generate-purs-watch": "watchexec --exts midnight -- npm run generate-purs"
+    "generate-purs-watch": "watchexec --exts midnight -- npm run generate-purs",
+    "tailwind-watch": "npx tailwindcss -i ./src/style.css -o ./dist/style.css --watch"
   },
   "dependencies": {
     "biwascheme": "^0.8.0"

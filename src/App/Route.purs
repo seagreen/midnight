@@ -12,11 +12,6 @@ import Slug as Slug
 
 data Route
   = Home
-  | MidnightLispDoc
-  | HelloWorld
-  | Editor
-  -- | Internal
-  | Image
 
 derive instance Generic Route _
 derive instance Eq Route
@@ -26,10 +21,6 @@ codec :: RouteDuplex' Route
 codec =
   root $ sum
     { "Home": noArgs
-    , "MidnightLispDoc": "592c" / "midnight-lisp-doc" / noArgs
-    , "HelloWorld": "468e" / "hello-world" / noArgs
-    , "Editor": "8e77" / "editor" / noArgs
-    , "Image": "image" / noArgs
     }
 
 slug :: RouteDuplex' String -> RouteDuplex' Slug

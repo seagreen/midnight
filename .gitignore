@@ -11,5 +11,6 @@ node_modules
 output
 
 # Dist
+dist/style.css
 dist/main.js
 # dist/*.js # `ag` doesn't ignore `*`'d files in `.gitignore`

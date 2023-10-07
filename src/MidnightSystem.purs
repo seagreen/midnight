@@ -7,10 +7,10 @@ import Data.Either (Either(..))
 import Data.Generic.Rep (class Generic)
 import Data.Show.Generic (genericShow)
 import Foreign (Foreign)
-import Lib.Image (Image)
 import Lib.Moore (Moore(..))
 import MidnightBiwa as MidnightBiwa
 import MidnightLang.Sexp (Sexp)
+import MidnightSystem.Display (Display)
 import MidnightSystem.Keyboard (Keyboard)
 import MidnightSystem.Keyboard as Keyboard
 import MidnightSystem.Output (StepOutput(..), biwaOutput)
@@ -18,7 +18,7 @@ import MidnightSystem.Startup as Startup
 
 data Output
   = OutputCrash String
-  | OutputSuccess { imageSexp :: Sexp, image :: Image, store :: Foreign, ephem :: Foreign }
+  | OutputSuccess { displaySexp :: Sexp, display :: Display, store :: Foreign, ephem :: Foreign }
 
 instance Show Output where
   -- | For tests
@@ -63,14 +63,14 @@ moore midnightSrc =
         (MidnightBiwa.applyClosure mainMidnight [ startingInput ])
 
     -- Parse the output.
-    StepNormal { imageSexp, image, store, ephem } <-
+    StepNormal { displaySexp, display, store, ephem } <-
       lmap
         (\err -> "Processing of the output failed: " <> err)
         (biwaOutput systemOutput)
 
     pure
       ( Moore
-          { output: OutputSuccess { imageSexp, image, store, ephem }
+          { output: OutputSuccess { displaySexp, display, store, ephem }
           , step: stepper { step: mainMidnight, store, ephem }
           }
       )
@@ -86,13 +86,13 @@ stepper { step, store, ephem } k =
         , step: stepper { step, store, ephem } -- reuse old store and ephem
         }
 
-    Right { imageSexp, image, store: newStore, ephem: newEphem } ->
+    Right { displaySexp, display, store: newStore, ephem: newEphem } ->
       Moore
-        { output: OutputSuccess { imageSexp, image, store: newStore, ephem: newEphem }
+        { output: OutputSuccess { displaySexp, display, store: newStore, ephem: newEphem }
         , step: stepper { step, store: newStore, ephem: newEphem } -- new store and ephem
         }
   where
-  stepEither :: Either String { imageSexp :: Sexp, image :: Image, store :: Foreign, ephem :: Foreign }
+  stepEither :: Either String { displaySexp :: Sexp, display :: Display, store :: Foreign, ephem :: Foreign }
   stepEither = do
     keyboardForeign <-
       lmap
@@ -120,8 +120,8 @@ stepper { step, store, ephem } k =
         (biwaOutput val)
 
     case stepOutput of
-      StepNormal { imageSexp, image, store: newStore, ephem: newEphem } ->
-        pure { imageSexp, image, store: newStore, ephem: newEphem }
+      StepNormal { displaySexp, display, store: newStore, ephem: newEphem } ->
+        pure { displaySexp, display, store: newStore, ephem: newEphem }
 
 biwaToInputCode :: String
 biwaToInputCode =
