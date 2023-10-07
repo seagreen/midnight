@@ -13,16 +13,52 @@ import Prelude
 -- |
 string :: String
 string =
-  """; ------------------------------------------------------------------------------
-; begin with plain midnight
-; ------------------------------------------------------------------------------
-
-(let
+  """(let
   ((midnight-plus-macros
     '(
 ; ------------------------------------------------------------------------------
-; midnight-plus-macros
+;
+;      MIDNIGHT System
+;
+;          Welcome.
+;
+; Try changing the "-" in the definition below to "+"
+; and then pressing ctrl-ENTER.
+;
+(define bottom-status-bar
+  'impl
+    (string-repeat 80 "-"))
+
+(define status-line
+  'impl
+    (lambda (editor)
+      (let
+        ((cursor
+          (string-concat
+            (list
+              "cursor: "
+              (int->string (grid-posn-column (editor-cursor editor)))
+              ", "
+              (int->string (grid-posn-row (editor-cursor editor))))))
+
+          (line-count
+            (string-append
+              "lines: "
+              (int->string (editor-line-count editor)))))
+        (string-pad-center
+          80
+          cursor
+          line-count))))
+
+(define view-status-area
+  'impl
+    (lambda (editor)
+      (list
+        bottom-status-bar
+        (status-line editor))))
+
 ; ------------------------------------------------------------------------------
+; main
 
 (define main
   'impl
@@ -101,14 +137,18 @@ string =
 
 (define display-size-rows
   'impl
-    30)
+    28) ; actually 30, but 2 are taken up the the status area
 
 (define view
   'impl
     (lambda (editor)
       (list
         (view-cursor (editor-viewport-row editor) (editor-cursor editor))
-        (view-text (editor-viewport-row editor) (editor-text editor)))))
+        (list
+          'text
+          (list-append
+            (view-lines (editor-viewport-row editor) (editor-text editor))
+            (view-status-area editor))))))
 
 (define view-cursor
   'impl
@@ -118,14 +158,12 @@ string =
         (grid-posn-column cursor)
         (- (+ 1 (grid-posn-row cursor)) viewport-row))))
 
-(define view-text
+(define view-lines
   'impl
     (lambda (viewport-row text)
-      (list
-        'text
-        (list-take
-          display-size-rows
-          (list-drop (nat-decrement viewport-row) text)))))
+      (list-take
+        display-size-rows
+        (list-drop (nat-decrement viewport-row) text))))
 
 ; ------------------------------------------------------------------------------
 ; update
@@ -179,11 +217,13 @@ string =
       (let
         ((cursor (editor-cursor ed))
          (row (grid-posn-row cursor)))
-        (editor-set-cursor
-          (column-and-row-to-grid-posn 1 (increment row))
-          (editor-modify-text
-            (lambda (text) (text-insert-newline cursor text))
-            ed)))))
+        (editor-modify-line-count
+          increment
+          (editor-set-cursor
+            (column-and-row-to-grid-posn 1 (increment row))
+            (editor-modify-text
+              (lambda (text) (text-insert-newline cursor text))
+              ed))))))
 
 (define editor-delete
   'impl
@@ -363,7 +403,7 @@ string =
 ; ------------------------------------------------------------------------------
 ; editor
 ;
-; (struct editor (viewport-row cursor shadow-cursor-column text))
+; (struct editor (viewport-row cursor shadow-cursor-column text line-count))
 
 (define string->editor
   'impl
@@ -382,7 +422,8 @@ string =
         (dict-insert 'viewport-row viewport-row
           (dict-insert 'cursor cursor
             (dict-insert 'shadow-cursor-column shadow-cursor-column
-              (dict-singleton 'text text)))))))
+              (dict-insert 'text text
+                (dict-singleton 'line-count (list-length text)))))))))
 
 (define editor-viewport-row
   'impl
@@ -406,6 +447,11 @@ string =
     (lambda (editor)
       (dict-lookup-or-crash 'text (type-tag-get editor-tag editor))))
 
+(define editor-line-count
+  'impl
+    (lambda (editor)
+      (dict-lookup-or-crash 'line-count (type-tag-get editor-tag editor))))
+
 (define editor-set-viewport-row
   'impl
     (lambda (viewport-row editor)
@@ -427,6 +473,11 @@ string =
   'impl
     (lambda (text editor)
       (editor-modify-text (lambda (_) text) editor)))
+
+(define editor-set-line-count
+  'impl
+    (lambda (count editor)
+      (editor-modify-line-count (lambda (_) count) editor)))
 
 (define editor-modify-viewport-row
   'impl
@@ -458,6 +509,13 @@ string =
       (type-tag-add
         editor-tag
         (dict-update 'text f (type-tag-get editor-tag editor)))))
+
+(define editor-modify-line-count
+  'impl
+    (lambda (f editor)
+      (type-tag-add
+        editor-tag
+        (dict-update 'line-count f (type-tag-get editor-tag editor)))))
 
 (define editor-tag
   'impl
@@ -1072,6 +1130,31 @@ string =
     )
   'impl
     (list->string '(97 98 99)))
+
+(define string-pad-center
+  'examples
+    (
+      (string-pad-center 5 "a" "z") (string-tag (97 32 32 32 122))
+    )
+  'impl
+    (lambda (n left right)
+      (let 
+        ((spaces-to-add
+            (- (- n (string-length left)) (string-length right))))
+        (string-concat
+          (list
+            left
+            (string-repeat spaces-to-add " ")
+            right)))))
+
+(define string-repeat
+  'examples
+    (
+      (string-repeat 2 "ab") (string-tag (97 98 97 98))
+    )
+  'impl
+    (lambda (n str)
+      (string-concat (list-replicate n str))))
 
 ; AKA codepoints->string
 (define list->string
@@ -2121,6 +2204,57 @@ string =
               (loop (f acc next) (increment next))))))
         (loop start 0))))
 
+(define int->string
+  'examples
+    (
+      (int->string 0) (string-tag (48))
+      (int->string 12) (string-tag (49 50))
+      (int->string -12) (string-tag (45 49 50))
+    )
+  'impl
+    (lambda (n)
+      (let
+        ((digits (list-map digit->codepoint (int->list-digit n))))
+        (list->string
+          (if
+            (< n 0)
+            (cons (string-to-codepoint "-") digits)
+            digits)))))
+
+; Won't include the '-' sign for negative numbers.
+(define int->list-digit
+  'impl
+    (lambda (n)
+      (let
+        ((go
+          (lambda (n acc)
+            (if
+              (< n 10)
+              (cons n acc)
+              (go (/ n 10) (cons (% n 10) acc))))))
+        (go (abs n) '()))))
+
+(define digit->codepoint
+  'examples
+    (
+      (digit->codepoint 0) 48
+      (digit->codepoint 9) 57
+    )
+  'impl
+    (lambda (d)
+      (cond
+        ((= d 0) 48)
+        ((= d 1) 49)
+        ((= d 2) 50)
+        ((= d 3) 51)
+        ((= d 4) 52)
+        ((= d 5) 53)
+        ((= d 6) 54)
+        ((= d 7) 55)
+        ((= d 8) 56)
+        ((= d 9) 57)
+        ('t (crash 'digit->codepoint-not-digit)))))
+
 (define <=
   'examples
     ( (<= 1 2) t
@@ -2174,6 +2308,15 @@ string =
         (> x y)
         x
         y)))
+
+; absolute value
+(define abs
+  'impl
+    (lambda (n)
+      (if
+        (< n 0)
+        (* n -1)
+        n)))
 
 (define negate
   'impl

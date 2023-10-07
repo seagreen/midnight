@@ -50,6 +50,7 @@ midnightToBiwaMap =
     , Tuple "-" "-"
     , Tuple "*" "*"
     , Tuple "/" "/-midnight-helper"
+    , Tuple "%" "modulo"
     , Tuple "<" "<-midnight-helper"
     , Tuple "=" "=-midnight-helper"
     , Tuple ">" ">-midnight-helper"
