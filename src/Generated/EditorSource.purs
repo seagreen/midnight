@@ -22,7 +22,7 @@ string =
 ;
 ;          Welcome.
 ;
-; Try changing the "-" in the definition below to "+"
+; Try changing the "-" in the definition below to ">"
 ; and then pressing ctrl-ENTER.
 ;
 (define bottom-status-bar
