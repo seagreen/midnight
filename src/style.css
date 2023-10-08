@@ -5,4 +5,5 @@
 @font-face {
     font-family: 'Lekton';
     src: url('/Lekton-Regular.ttf') format('truetype');
+    font-display: block;
 }
