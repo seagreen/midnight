@@ -1,6 +1,7 @@
 { name = "halogen-project"
 , dependencies =
   [ "aff"
+  , "argonaut"
   , "arrays"
   , "bifunctors"
   , "console"
