@@ -2,163 +2,124 @@ module MidnightJS.Imp where
 
 import Prelude
 
-import Data.Enum (fromEnum, toEnum)
 import Data.Generic.Rep (class Generic)
-import Data.List (List)
+import Data.List (List, (:))
 import Data.List as List
+import Data.Maybe (Maybe(..))
 import Data.Show.Generic (genericShow)
-import Data.String as String
 import Data.Tuple (Tuple(..))
+import MidnightJS.AST (AST)
+import MidnightJS.AST as AST
 
 type Id = String
 
--- h/t PureScript
+-- | See the PureScript compiler for a good example of this type of thing.
 data Imp
   = Var Id
   | Lam (List String) Imp
   | LamVariadic String Imp
-  | -- | immediately invoked function expression (IIFE)
-    --
-    -- Used to simulate lisp-style let.
-    --
-    -- `(() => <imp>)()`
-    LamUnitImmediateInvoked Imp
   | Let (List (Tuple String Imp)) Imp
   | App Imp (List Imp)
   | If Imp Imp Imp
   | Array (List Imp)
-  -- | IndexArray Imp Int
-  | JSInt Int
-  | JSString String
-  | Block (List Imp)
-  | Assignment String Imp
-  | Return Imp
-  | Throw Imp
+  | Int Int
+  | ImpString String
+  | Throw String
+  --
+  -- Generated during optimization
+  --
+  | TceFunction String (List String) Imp
+  | TceBaseCase String Imp
+  | TceRecursiveCall String (List (Tuple String Imp))
 
 derive instance Eq Imp
 derive instance Generic Imp _
 instance Show Imp where
   show a = genericShow a
 
-serialize :: Imp -> String
-serialize =
+toAST :: Imp -> AST
+toAST =
   case _ of
     Var id ->
-      id
+      AST.Var id
 
     Lam params body ->
-      "(("
-        <> List.intercalate ", " params
-        <> ") => "
-        <> serialize body
-        <> ")"
+      AST.Lam params (toAST body)
 
     LamVariadic param body ->
-      "((..."
-        <> param
-        <> ") => "
-        <> serialize body
-        <> ")"
-
-    LamUnitImmediateInvoked imp ->
-      "(() => " <> serialize imp <> ")()"
+      AST.LamVariadic param (toAST body)
 
     Let bindingList body ->
-      serialize
-        ( LamUnitImmediateInvoked
-            ( Block
-                ( ( (\(Tuple name val) -> Assignment name val)
-                      <$> bindingList
-                  )
-                    <> List.singleton (Return body)
-                )
+      AST.Let
+        ( (\(Tuple name val) -> Tuple name (toAST val))
+            <$> bindingList
+        )
+        (toAST body)
+
+    App f params ->
+      AST.App (toAST f) (toAST <$> params)
+
+    Array xs ->
+      AST.Array (toAST <$> xs)
+
+    ImpString sym ->
+      AST.JSString sym
+
+    Int n ->
+      AST.JSInt n
+
+    If predicate consequent alternative ->
+      AST.If (toAST predicate) (toAST consequent) (toAST alternative)
+
+    TceFunction tce_metavar_name params body ->
+      let
+        tceParams =
+          (\param -> tce_metavar_name <> "_" <> param)
+            <$> params
+      in
+        AST.Lam tceParams
+          ( AST.Block
+              ( AST.JsLet (tce_metavar_name <> "_done") (Just (AST.JsBool false))
+                  : AST.JsLet (tce_metavar_name <> "_result") Nothing
+                  : AST.Const (tce_metavar_name <> "_loop") (toAST body)
+                  : AST.While
+                      (AST.Not (tce_metavar_name <> "_done"))
+                      ( AST.Block
+                          ( AST.Assignment
+                              (tce_metavar_name <> "_result")
+                              ( AST.App
+                                  (AST.Var (tce_metavar_name <> "_loop"))
+                                  (AST.Var <$> tceParams)
+                              ) : List.Nil
+                          )
+                      )
+                  : AST.Return (AST.Var (tce_metavar_name <> "_result"))
+                  : List.Nil
+              )
+          )
+
+    TceBaseCase tce_metavar_name imp ->
+      AST.LamUnitImmediateInvoked
+        ( AST.Block
+            ( (AST.Assignment (tce_metavar_name <> "_done") (AST.JsBool true))
+                : AST.Return (toAST imp)
+                : List.Nil
             )
         )
 
-    App f params ->
-      serialize f <> "(" <> serializeCommaSeparated params <> ")"
+    TceRecursiveCall tce_metavar_name args ->
+      let
+        f :: Tuple String Imp -> AST
+        f (Tuple param imp) =
+          AST.Assignment (tce_metavar_name <> "_" <> param) (toAST imp)
 
-    Array xs ->
-      "[" <> serializeCommaSeparated xs <> "]"
-
-    JSString sym ->
-      "\"" <> sym <> "\""
-
-    JSInt n ->
-      show n
-
-    If predicate consequent alternative ->
-      serialize predicate
-        <> """ === "t" ? """
-        <> serialize consequent
-        <> " : "
-        <> serialize alternative
-
-    Block xs ->
-      "{" <> List.intercalate " " (serialize <$> xs) <> "}"
-
-    Assignment name val ->
-      "const " <> name <> " = " <> serialize val <> ";"
-
-    Return a ->
-      "return " <> serialize a <> ";"
+      in
+        AST.LamUnitImmediateInvoked
+          ( AST.Block
+              ( (f <$> args)
+                  <> List.singleton AST.BareReturn
+              )
+          )
 
     Throw e ->
-      "throw " <> serialize e
-
-serializeCommaSeparated :: List Imp -> String
-serializeCommaSeparated xs =
-  List.intercalate ", " (serialize <$> xs)
-
-{-
-
-serializeTop :: Imp -> Text
-serializeTop Imp =
-  case Imp of
-    Block xs ->
-      Text.intercalate "\n" (fmap serialize xs)
-    _ ->
-      serialize Imp
-
-
-serialize :: Imp -> Text -- PERFORMANCE: could use a builder
-serialize topImp =
-  case topImp of
-    Assignment a1 a2 ->
-      "const " <> serialize a1 <> " = " <> serialize a2 <> ";"
-
-    Block Imps ->
-      Text.intercalate "\n" (fmap serialize Imps)
-
-    Return Imp ->
-      "return " <> serialize Imp
-
-    IndexArray Imp index ->
-      serialize Imp <> "[" <> show index <> "]"
-
-    IfThen a1 a2 ->
-      "if (" <> serialize a1 <> ") { " <> serialize a2 <> "}"
-
-    Else Imp ->
-      " else { " <> serialize Imp <> " }"
-
-    Throw Imp ->
-      "throw " <> serialize Imp
-
-    Equal a1 a2 ->
-      serialize a1 <> " === " <> serialize a2
-
-    LambdaUnit Imp ->
-      "(() => { " <> serialize Imp <> "})()"
-
-    Compare Imp1 Imp2 ->
-      "$compareBuiltin(" <> serialize Imp1 <> ", " <> serialize Imp2 <> ")"
-
-    ShowInt Imp ->
-      "$unicodeListizeBuiltin(" <> serialize Imp <> ".toString())"
-
-serializeId :: Id -> Text
-serializeId (Id t) =
-  "_" <> t
-
--}
+      AST.Throw e

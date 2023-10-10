@@ -13,7 +13,6 @@ import Data.String as String
 import Data.Traversable (for)
 import Data.Tuple (Tuple(..))
 import MidnightJS.Imp (Imp(..))
-import MidnightJS.Imp as Imp
 import MidnightJS.Translate as Translate
 import MidnightLang.Sexp (PsList, Sexp)
 import MidnightLang.Sexp as Sexp
@@ -27,7 +26,7 @@ transpile =
     Sexp.List xs ->
       case xs of
         List.Nil ->
-          Throw (JSString "Evaluated empty list")
+          Throw "Evaluated empty list"
 
         List.Cons x rest ->
           case x of
@@ -47,7 +46,7 @@ transpile =
               App (transpile x) (transpile <$> rest)
 
     Sexp.Int n ->
-      JSInt n
+      Int n
 
 translateSymbol :: String -> String
 translateSymbol sym =
@@ -76,18 +75,14 @@ transpileLambda =
 
         Sexp.Int n ->
           Throw
-            ( JSString
-                ( "Expected symbol or list of symbols for lambda expression, but got: "
-                    <> show n
-                )
+            ( "Expected symbol or list of symbols for lambda expression, but got: "
+                <> show n
             )
 
     params ->
       Throw
-        ( JSString
-            ( "Expected two arguments for lambda expression, but got: "
-                <> show params
-            )
+        ( "Expected two arguments for lambda expression, but got: "
+            <> show params
         )
   where
   toStringParams :: PsList Sexp -> (PsList String -> Imp) -> Imp
@@ -108,10 +103,8 @@ transpileLambda =
       case for params toString of
         Left e ->
           Throw
-            ( JSString
-                ( "Expected symbol for lambda parameter, but got: "
-                    <> e
-                )
+            ( "Expected symbol for lambda parameter, but got: "
+                <> e
             )
 
         Right stringParams ->
@@ -125,25 +118,21 @@ transpileLet =
         Sexp.List bindingSexps ->
           case transpileBindings bindingSexps of
             Left e ->
-              Throw (JSString e)
+              Throw e
 
             Right bindings ->
               Let bindings (transpile body)
 
         _ ->
           Throw
-            ( JSString
-                ( "Expected let bindings to be a list, but got: "
-                    <> show bindingList
-                )
+            ( "Expected let bindings to be a list, but got: "
+                <> show bindingList
             )
 
     params ->
       Throw
-        ( JSString
-            ( "Expected two arguments for let expression, but got: "
-                <> show params
-            )
+        ( "Expected two arguments for let expression, but got: "
+            <> show params
         )
   where
   transpileBindings :: PsList Sexp -> Either String (PsList (Tuple String Imp))
@@ -170,10 +159,8 @@ transpileIf =
 
     params ->
       Throw
-        ( JSString
-            ( "Expected three arguments for if expression, but got: "
-                <> show params
-            )
+        ( "Expected three arguments for if expression, but got: "
+            <> show params
         )
 
 quoteArgs :: PsList Sexp -> Imp
@@ -184,20 +171,18 @@ quoteArgs =
 
     params ->
       Throw
-        ( JSString
-            ( "Expected one argument for quote, but got: "
-                <> show params
-            )
+        ( "Expected one argument for quote, but got: "
+            <> show params
         )
 
 transpileQuote :: Sexp -> Imp
 transpileQuote =
   case _ of
     Sexp.Symbol sym ->
-      JSString sym
+      ImpString sym
 
     Sexp.List xs ->
       Array (transpileQuote <$> xs)
 
     Sexp.Int n ->
-      JSInt n
+      Int n

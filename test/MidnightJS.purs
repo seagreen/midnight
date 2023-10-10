@@ -213,6 +213,10 @@ spec = do
         JS.eval letExample
           `shouldEqual` Right "2"
 
+      it "allows-recursion" do
+        JS.eval letRecursiveExample
+          `shouldEqual` Right "a"
+
     describe "string literal" do
       it "works" do
         JS.eval "\"abc\""
@@ -233,6 +237,19 @@ letExample =
   ((go (lambda (n) (+ n x)))
    (x 1))
   (go 1))
+"""
+
+letRecursiveExample :: String
+letRecursiveExample =
+  """
+(let
+  ((go
+    (lambda (n)
+      (if
+        (= n 0)
+        'a
+        (go (- n 1))))))
+  (go 2))
 """
 
 {-

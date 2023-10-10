@@ -19,14 +19,23 @@ import MidnightLang.Sexp as Sexp
 midnightToJsMap :: Map String String
 midnightToJsMap =
   Map.fromFoldable
-    [ -- Classics (variables and `app` are implicit)
+    [ -- Lambda calculus
+      --
+      -- (variables, application, and `let` don't translate
+      -- to JS identifiers)
+      --
+      -- TODO: should lambda be removed from here as well?
+      -- Not sure what semantics we want for:
+      --
+      -- ```
+      -- ((lambda (lambda) lambda) 1)
+      -- ```
       Tuple "lambda" "lambda"
 
-    -- Lispy
-    , Tuple "quote" "quote" -- TODO: remove?
+    -- Lispy (`quote` doesn't translate to a JS identifier)
     , Tuple "eval" "evalMidnight"
 
-    -- Conditional
+    -- Conditional (`if` doesn't translate to a JS identifier)
     , Tuple "t" "t"
     , Tuple "f" "f"
 
