@@ -2,10 +2,10 @@ module MidnightJS.TCE where
 
 import Prelude
 
-import Data.Tuple as Tuple
 import Data.List (List)
 import Data.List as List
 import Data.Tuple (Tuple(..))
+import Data.Tuple as Tuple
 import MidnightJS.Imp (Imp(..))
 
 {- Our goal:
@@ -97,8 +97,11 @@ tailCallElimation =
         (tailCallElimation consequent)
         (tailCallElimation alternative)
 
-    Array xs ->
-      Array (tailCallElimation <$> xs)
+    NilList ->
+      NilList
+
+    Pair a b ->
+      Pair (tailCallElimation a) (tailCallElimation b)
 
     Int n ->
       Int n
@@ -187,7 +190,10 @@ tceReturns name tce_metavar_name params expr =
         (rec consequent)
         (rec alternative)
 
-    Array _ ->
+    NilList ->
+      baseCase
+
+    Pair _ _ ->
       baseCase
 
     Int _ ->
@@ -223,39 +229,39 @@ inTailPosition name =
       id == name
 
     Lam params body ->
-      if List.elem name params 
-        then
-          false
-        else
-          inTailPosition name body
+      if List.elem name params then
+        false
+      else
+        inTailPosition name body
 
     LamVariadic param body ->
-      if name == param
-        then 
-          false
-        else
-          inTailPosition name body
+      if name == param then
+        false
+      else
+        inTailPosition name body
 
     Let bindingList body ->
-       if List.elem name (Tuple.fst <$> bindingList)
-         then false
-         else inTailPosition name body
+      if List.elem name (Tuple.fst <$> bindingList) then false
+      else inTailPosition name body
 
     App f _ ->
       inTailPosition name f
 
     If _ consequent alternative ->
       inTailPosition name consequent
-       || inTailPosition name alternative
+        || inTailPosition name alternative
 
-    Array _ ->
+    NilList ->
+      false
+
+    Pair _ _ ->
       false
 
     Int _ ->
       false
 
     ImpString _ ->
-        false
+      false
 
     -- TODO: is this right?
     TceFunction _ _ _ ->

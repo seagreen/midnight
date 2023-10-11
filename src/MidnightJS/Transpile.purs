@@ -5,6 +5,7 @@ import Prelude
 import Data.Array as Array
 import Data.Either (Either(..))
 import Data.Enum (fromEnum)
+import Data.Foldable (foldr)
 import Data.List ((:))
 import Data.List as List
 import Data.Map as Map
@@ -222,10 +223,63 @@ transpileQuote :: Sexp -> Imp
 transpileQuote =
   case _ of
     Sexp.Symbol sym ->
+      -- NOTE(QUOTED_SYMBOLS_NOT_SANITIZED)
+      --
+      -- When sent through an eval they get become variables
+      -- and get sanitized, but until then they're not.
+      --
+      -- For example, when used in a comparison:
+      -- ```
+      -- symbol-eq? 'input-normal input
+      -- ```
+      --
+      -- At first I thought the outside system would need to pass in
+      -- `input_normal_midnight` for the input variable,
+      -- but this isn't correct.
       ImpString sym
 
     Sexp.List xs ->
-      Array (transpileQuote <$> xs)
+      foldr
+        (\x acc -> Pair (transpileQuote x) acc)
+        NilList
+        xs
+    -- Array (transpileQuote <$> xs)
+    {-
+    case xs of
+      List.Nil ->
+        Array List.Nil
+
+      List.Cons x rest ->
+        Array
+          ( transpileQuote x
+              : transpileQuote (Sexp.List rest)
+              : List.Nil
+          )
+    -}
 
     Sexp.Int n ->
       Int n
+
+{-
+pairize :: Sexp -> Sexp
+pairize =
+  case _ of
+    Sexp.Symbol sym ->
+      Sexp.Symbol sym
+
+    Sexp.List xs ->
+      convertToConsList xs
+
+    Sexp.Int n ->
+      Sexp.Int n
+
+convertToConsList :: PsList Sexp -> Sexp
+convertToConsList xs =
+  case xs of
+    List.Nil ->
+      Sexp.List List.Nil
+
+    List.Cons x rest ->
+      -- TODO: perf   
+      Sexp.List (pairize x : convertToConsList rest : List.Nil)
+-}

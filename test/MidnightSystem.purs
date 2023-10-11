@@ -6,8 +6,6 @@ import Data.Either (Either(..))
 import Data.List ((:))
 import Data.List as PsList
 import Data.Maybe (Maybe(..), isJust)
-import Effect (Effect)
-import Effect.Aff (Aff, Error, effectCanceler, makeAff, nonCanceler)
 import Effect.Class (liftEffect)
 import Generated.EditorSource as EditorSource
 import Lib.Moore as Moore
@@ -82,7 +80,7 @@ spec = do
                         )
                       pure unit
 
-  describe "starts-up-and-accepts-input" do
+  describe "starts-up-and-accepts-abc-input" do
     it "works" do
       case MidnightJS.evalToForeign EditorSource.string of
         Left e ->
@@ -91,7 +89,7 @@ spec = do
         Right f -> do
           let
             startingInput =
-              """'(system-input-start-with-editor-contents (string-tag (97)))"""
+              """'(system-input-start-with-editor-contents (string-tag (97 98 99)))"""
           case MidnightJS.evalToForeign startingInput of
             Left e ->
               fail e
@@ -103,8 +101,6 @@ spec = do
 
                 Right _ ->
                   pure unit
-
-{-
 
     it "initial editor outputs an image successfully" do
       case MidnightSystem.moore EditorSource.string of
@@ -127,7 +123,8 @@ spec = do
                     : Keyboard.noMeta (Keyboard.KeyArrow Keyboard.ArrowDown)
                     : Keyboard.noMeta (Keyboard.KeyArrow Keyboard.ArrowLeft)
                     : Keyboard.noMeta (Keyboard.KeyArrow Keyboard.ArrowRight)
-                    : { key: Keyboard.KeyEnter, ctrlOrMeta: true } -- restart
+                    {-: { key: Keyboard.KeyEnter, ctrlOrMeta: true } -- restart
+                    -}
                     : Keyboard.aKey
                     : Keyboard.aKey
                     : Keyboard.aKey
@@ -146,5 +143,3 @@ getCrash = case _ of
 
   OutputSuccess _ ->
     Nothing
-
--}

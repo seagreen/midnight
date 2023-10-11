@@ -20,7 +20,8 @@ data AST
   | Let (List (Tuple String AST)) AST
   | App AST (List AST)
   | If AST AST AST
-  | Array (List AST)
+  | NilList
+  | Pair AST AST
   | Int Int
   | JSString String
   | Throw String
@@ -63,10 +64,11 @@ serialize =
 
     LamVariadic param body ->
       "((..."
-        <> param
-        <> ") => "
+        <> param <> "$$" -- TODO
+        <> ") => {const " <> param <> " = arrayToLinkedList(" <> param <> "$$); "
+        <> "return "
         <> serialize body
-        <> ")"
+        <> ";})"
 
     LamUnitImmediateInvoked body ->
       "(() => " <> serialize body <> ")()"
@@ -87,8 +89,11 @@ serialize =
     App f args ->
       serialize f <> "(" <> serializeCommaSeparated args <> ")"
 
-    Array xs ->
-      "[" <> serializeCommaSeparated xs <> "]"
+    NilList ->
+      "[]"
+
+    Pair a b ->
+      "[" <> serializeCommaSeparated (a : b : List.Nil) <> "]"
 
     JSString sym ->
       "\"" <> sym <> "\""

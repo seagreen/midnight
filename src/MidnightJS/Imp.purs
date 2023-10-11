@@ -1,5 +1,6 @@
 module MidnightJS.Imp where
 
+import Lib.Debug
 import Prelude
 
 import Data.Generic.Rep (class Generic)
@@ -21,7 +22,8 @@ data Imp
   | Let (List (Tuple String Imp)) Imp
   | App Imp (List Imp)
   | If Imp Imp Imp
-  | Array (List Imp)
+  | NilList
+  | Pair Imp Imp
   | Int Int
   | ImpString String
   | Throw String
@@ -59,8 +61,11 @@ toAST =
     App f params ->
       AST.App (toAST f) (toAST <$> params)
 
-    Array xs ->
-      AST.Array (toAST <$> xs)
+    NilList ->
+      AST.NilList
+
+    Pair a b ->
+      AST.Pair (toAST a) (toAST b)
 
     ImpString sym ->
       AST.JSString sym

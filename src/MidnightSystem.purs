@@ -97,7 +97,7 @@ stepper { step, store, ephem } k =
     keyboardForeign <-
       lmap
         (\err -> "Couldn't eval keyboard input: " <> err)
-        (MidnightJS.evalToForeign (Keyboard.toJS k))
+        (MidnightJS.evalToForeign (Keyboard.toMidnightQuoted k))
 
     inputMaker <-
       lmap

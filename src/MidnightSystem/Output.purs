@@ -2,6 +2,7 @@ module MidnightSystem.Output where
 
 import Lib.Debug
 import Prelude
+import Debug
 
 import Data.Bifunctor (lmap)
 import Data.Either (Either(..))
@@ -10,45 +11,51 @@ import Data.Maybe (Maybe(..))
 import Data.String as String
 import Data.String.CodePoints (CodePoint)
 import Data.Traversable (for)
-import Foreign (Foreign)
+import Foreign (Foreign, unsafeFromForeign)
 import Lib.Sexp as GenericSexp
 import MidnightJS as MidnightJS
 import MidnightJS.Foreign as Foreign
+import MidnightJS.JsonToMidnightSexp as JsonToMidnightSexp
 import MidnightJS.Translate as Translate
 import MidnightLang.Sexp (Sexp)
 import MidnightLang.Sexp as Sexp
+import MidnightJS.JsonToMidnightSexp (jsonToMidnightSexp)
 import MidnightSystem.Display (Display)
 import MidnightSystem.Display as Display
-import MidnightJS.JsonToMidnightSexp as JsonToMidnightSexp
 
 data StepOutput = StepNormal { displaySexp :: Sexp, display :: Display, store :: Foreign, ephem :: Foreign }
 
 jsToOutput :: Foreign -> Either String StepOutput
 jsToOutput val = do
+  {-
   outputConstructorForeign <- getFirst val
   outputConstructorSexp <- foreignToSexp outputConstructorForeign
   case outputConstructorSexp of
     Sexp.Symbol "output-normal" -> do
-      displayForeign <- getSecond val
-      displaySexp <- lmap (\err -> "foreign to display sexp: " <> err) (foreignToSexp displayForeign)
-      display <- lmap (\err -> "parse display sexp: " <> err) (Display.parse displaySexp)
-      store <- getThird val
-      ephem <- getFourth val
-      pure (StepNormal { displaySexp, display, store, ephem })
 
+-}
+  displayForeign <- getSecond val
+  displaySexp <- lmap (\err -> "foreign to display sexp: " <> err) (foreignToSexp displayForeign)
+  display <- lmap (\err -> "parse display sexp: " <> err) (Display.parse displaySexp)
+  store <- getThird val
+  ephem <- getFourth val
+  pure (StepNormal { displaySexp, display, store, ephem })
+
+{-
     other ->
       Left ("Parse step output: output constructor not recognized: " <> Sexp.print other)
+-}
 
 foreignToSexp :: Foreign -> Either String Sexp
 foreignToSexp jsVal = do
-  crash "there"
-  -- midnightSexp <- GenericSexp.parse (Foreign.toString jsVal)
-  -- Translate.biwaSexpToMidnightSexp biwaSexp
+  jsonToMidnightSexp (unsafeFromForeign jsVal)
 
 foreignToSexpAllowClosures :: Foreign -> Either String Sexp
 foreignToSexpAllowClosures jsVal = do
-  -- genericSexp <- GenericSexp.parse (Foreign.String jsVal)
-  crash "here"
+  pure (Sexp.Symbol "TODO TODO")
+
+-- genericSexp <- GenericSexp.parse (Foreign.String jsVal)
+-- crash "here"
 
 -- Translate.biwaSexpToMidnightSexp biwaSexp
 

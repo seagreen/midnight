@@ -4,26 +4,26 @@ import * as MidnightJS from '../MidnightJS/index.js';
 
 export const _evalToJson = left => right => src => {
   try {
-    return (right(eval(src)));
+    return right(evalWithBuiltinSnippet(src));
   } catch (error) {
-    return (left(error.toString() + error.stack));
+    return left(error.toString());
   }
 }
 
 // Same as _evalToJson, but given a different type on the PS side.
 export const _evalToForeign = left => right => src => {
   try {
-    return (right(eval(src)));
+    return right(evalWithBuiltinSnippet(src));
   } catch (error) {
-    return (left(error.toString()));
+    return left(error.toString());
   }
 }
 
 export const _applyClosure = left => right => f => args => {
   try {
-    return (right(f(...args)));
+    return right(f(...args));
   } catch (error) {
-    return (left(error.toString()));
+    return left(error.toString());
   }
 }
 
@@ -31,10 +31,35 @@ export const _toString = js_value => {
   return JSON.stringify(js_value);
 }
 
+// Eval
+
+const globalObject = typeof window !== 'undefined' ? window : global;
+
+globalObject.evalJsonToJsonAttachedToGlobalObject = (a) => {
+  return MidnightJS.evalJsonToJson(a).value0;
+}
+
+const evalWithBuiltinSnippet = jsExpr => {
+  // https://esbuild.github.io/content-types/#direct-eval
+  return (0, eval)(addBuiltinSnippet(jsExpr));
+}
+
+const addBuiltinSnippet = jsExpr => {
+  return builtinSnippet + "\n\n" + jsExpr;
+}
+
+const builtinSnippet = `
 // Lispy
 
-const evalMidnight = a => {
-  return MidnightJS.evalJsonToJson(a).value0;
+const globalObject = typeof window !== 'undefined' ? window : global;
+
+const evalMidnight = midnightAsJson => {
+  const getRandomDigits = max => (Math.floor(Math.random() * max)).toString().padStart(4, '0');
+  const label = 'eval_internal_' + getRandomDigits(9999)
+  console.time(label);
+  const a = globalObject.evalJsonToJsonAttachedToGlobalObject(midnightAsJson);
+  console.timeEnd(label);
+  return a;
 }
 
 // Conditional
@@ -50,11 +75,11 @@ const car = xs => {
 }
 
 const cdr = xs => {
-  return xs.slice(1);
+  return xs[1];
 }
 
 const cons = (x, xs) => {
-  return [x, ...xs];
+  return [x, xs];
 }
 
 const isPair = xs => {
@@ -76,7 +101,7 @@ const isSymbolEq = (a, b) => {
 }
 
 const codepointsToSymbol = xs => {
-  return String.fromCodePoint(...xs);
+  return String.fromCodePoint(...(linkedListToArray(xs)));
 }
 
 // Integer
@@ -98,7 +123,7 @@ const multiply = (x, y) => {
 }
 
 const divide = (x, y) => {
-  return Math.floor(x / y);
+  return (x / y) | 0;
 }
 
 const modulo = (x, y) => {
@@ -128,11 +153,10 @@ const traceMidnightHelper = a => {
   return a;
 }
 
-const tracebenchMidnightHelper = lazyA => {
-  // TODO: test
-  console.time("bench");
+const tracebenchMidnightHelper = (label, lazyA) => {
+  console.time(label);
   const a = lazyA();
-  console.timeEnd("bench");
+  console.timeEnd(label);
   return a;
 }
 
@@ -141,3 +165,31 @@ const tracebenchMidnightHelper = lazyA => {
 const boolToSymbol = bool => {
   return bool ? "t" : "f";
 }
+
+const linkedListToArray = xs => {
+  let ys = [];
+  let current = xs;
+  while (current.length > 0) {
+    ys.push(current[0]);
+    current = current[1];
+  }
+  return ys;
+}
+
+// TODO: questionable and duplicate
+const arrayToLinkedList = arr => {
+  if (arr.length === 0) {
+    return [];
+  }
+
+  let list = [arr[0], []];
+  let current = list;
+
+  for (let i = 1; i < arr.length; i++) {
+    current[1] = [arr[i], []];
+    current = current[1];
+  }
+
+  return list;
+}
+`;

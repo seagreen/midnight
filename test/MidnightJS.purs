@@ -4,8 +4,10 @@ import Prelude
 
 import Data.Either (Either(..))
 import MidnightJS as JS
+import MidnightJS as MidnightJS
+import MidnightJS.Transpile as Transpile
 import Test.Spec (Spec, describe, it)
-import Test.Spec.Assertions (shouldEqual)
+import Test.Spec.Assertions (fail, shouldEqual)
 
 spec :: Spec Unit
 spec = do
@@ -95,8 +97,8 @@ spec = do
         JS.eval "(symbol-eq? 'a 'b)"
           `shouldEqual` Right "f"
 
-        -- JS.eval "(symbol-eq? 'a 1)"
-        --     `shouldEqual` Left "execute: unbound symbol: \"TODO-symbol?-eq-not-symbol\" [symbol-eq?]"
+      -- JS.eval "(symbol-eq? 'a 1)"
+      --     `shouldEqual` Left "execute: unbound symbol: \"TODO-symbol?-eq-not-symbol\" [symbol-eq?]"
 
       it "codepoints->symbol" do
         JS.eval "(codepoints->symbol '(97 98 99))"
@@ -119,6 +121,12 @@ spec = do
           `shouldEqual` Right "(b)"
 
       it "cons" do
+        JS.eval "(cons 'a '())"
+          `shouldEqual` Right "(a)"
+
+        JS.eval "(cons 'a '(b))"
+          `shouldEqual` Right "(a b)"
+
         JS.eval "(cons 'a '(b c))"
           `shouldEqual` Right "(a b c)"
 
@@ -251,10 +259,3 @@ letRecursiveExample =
         (go (- n 1))))))
   (go 2))
 """
-
-{-
-    it "handles failure" do
-      JS.eval "(+ 1 1"
-        `shouldEqual`
-          Left "(ParseError \"inside list: Expected ')'\" (Position { column: 7, index: 6, line: 1 }))"
--}
