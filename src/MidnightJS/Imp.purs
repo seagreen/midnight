@@ -66,7 +66,7 @@ toAST =
       AST.JSString sym
 
     Int n ->
-      AST.JSInt n
+      AST.Int n
 
     If predicate consequent alternative ->
       AST.If (toAST predicate) (toAST consequent) (toAST alternative)

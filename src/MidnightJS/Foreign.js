@@ -2,9 +2,26 @@
 
 import * as MidnightJS from '../MidnightJS/index.js';
 
+export const _evalToJson = left => right => src => {
+  try {
+    return (right(eval(src)));
+  } catch (error) {
+    return (left(error.toString() + error.stack));
+  }
+}
+
+// Same as _evalToJson, but given a different type on the PS side.
 export const _evalToForeign = left => right => src => {
   try {
     return (right(eval(src)));
+  } catch (error) {
+    return (left(error.toString()));
+  }
+}
+
+export const _applyClosure = left => right => f => args => {
+  try {
+    return (right(f(...args)));
   } catch (error) {
     return (left(error.toString()));
   }
@@ -98,6 +115,25 @@ const equal = (x, y) => {
 
 const greaterThan = (x, y) => {
   return boolToSymbol(x > y);
+}
+
+// Debug
+
+const crash_now_midnight = a => {
+  throw new Error(a);
+}
+
+const traceMidnightHelper = a => {
+  console.log(a);
+  return a;
+}
+
+const tracebenchMidnightHelper = lazyA => {
+  // TODO: test
+  console.time("bench");
+  const a = lazyA();
+  console.timeEnd("bench");
+  return a;
 }
 
 // Helpers

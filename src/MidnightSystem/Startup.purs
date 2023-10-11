@@ -7,8 +7,8 @@ import Data.Either (Either)
 import Data.List ((:))
 import Data.List as PsList
 import Foreign (Foreign, unsafeToForeign)
-import MidnightBiwa as MidnightBiwa
-import MidnightBiwa.Foreign as Foreign
+import MidnightJS as MidnightJS
+import MidnightJS.Foreign as Foreign
 import MidnightLang.Sexp as Sexp
 
 editorStringToInput :: String -> Either String Foreign
@@ -16,13 +16,13 @@ editorStringToInput str = do
   f <-
     lmap
       (\err -> "Evaluation of editorStringToInput failed: " <> err)
-      (Foreign.evalToForeign editorStringToInputBiwaCode)
+      (Foreign.evalToForeign editorStringToInputJSCode)
 
   -- TODO: Can we get rid of unsafeToForeign?
-  MidnightBiwa.applyClosure f [ unsafeToForeign str ]
+  MidnightJS.applyClosure f [ unsafeToForeign str ]
 
-editorStringToInputBiwaCode :: String
-editorStringToInputBiwaCode =
+editorStringToInputJSCode :: String
+editorStringToInputJSCode =
   """
 (lambda (str)
   `(system-input-start-with-editor-contents-midnight
@@ -31,7 +31,7 @@ editorStringToInputBiwaCode =
 
 editorStringToInputReference :: String -> Either String Foreign
 editorStringToInputReference str =
-  MidnightBiwa.evalToForeign midnightStr
+  MidnightJS.evalToForeign midnightStr
   where
   midnightStr :: String
   midnightStr =

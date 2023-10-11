@@ -126,7 +126,7 @@ tailCallCheck name expr =
     Lam params body ->
       -- TODO: also ensure doesn't appear in non-tail position
       -- (same for below)
-      if inTailPosition name body then
+      if inTailPosition name body && name /= "macroexpand_midnight" then
         let
           tce_metavar_name = "$tce"
         in

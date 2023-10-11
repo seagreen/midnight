@@ -2478,9 +2478,11 @@ string =
   'impl
     (lambda (a)
       (let
+        ; TODO: need to allow variables to repeat again?
+        ; lost during the JS compiler transition
         ((_ (trace 'crash--------------------))
-         (_ (trace a))
-         (_ (trace '-------------------------)))
+         (__ (trace a))
+         (___ (trace '-------------------------)))
         crash-now)))
 
 (define eq?
@@ -2557,9 +2559,10 @@ string =
   (crash
     (lambda (a)
       (let
+        ; TODO: need to allow variables to repeat again?
         ((_ (trace 'crash-plain-midnight-----))
-         (_ (trace a))
-         (_ (trace '-------------------------)))
+         (__ (trace a))
+         (___ (trace '-------------------------)))
         crash-now)))
 
   (increment (lambda (n)

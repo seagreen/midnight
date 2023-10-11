@@ -9,6 +9,9 @@ node_modules
 
 # Generated
 output
+editor-gitignored.js
+editor-macroexpanded-gitignored.js
+editor-macroexpanded-gitignored.scm
 
 # Dist
 dist/style.css

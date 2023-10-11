@@ -1,5 +1,6 @@
 module MidnightSystem.Output where
 
+import Lib.Debug
 import Prelude
 
 import Data.Bifunctor (lmap)
@@ -11,18 +12,19 @@ import Data.String.CodePoints (CodePoint)
 import Data.Traversable (for)
 import Foreign (Foreign)
 import Lib.Sexp as GenericSexp
-import MidnightBiwa as MidnightBiwa
-import MidnightBiwa.Foreign as Foreign
-import MidnightBiwa.Translate as Translate
+import MidnightJS as MidnightJS
+import MidnightJS.Foreign as Foreign
+import MidnightJS.Translate as Translate
 import MidnightLang.Sexp (Sexp)
 import MidnightLang.Sexp as Sexp
-import MidnightSystem.Display as Display
 import MidnightSystem.Display (Display)
+import MidnightSystem.Display as Display
+import MidnightJS.JsonToMidnightSexp as JsonToMidnightSexp
 
 data StepOutput = StepNormal { displaySexp :: Sexp, display :: Display, store :: Foreign, ephem :: Foreign }
 
-biwaOutput :: Foreign -> Either String StepOutput
-biwaOutput val = do
+jsToOutput :: Foreign -> Either String StepOutput
+jsToOutput val = do
   outputConstructorForeign <- getFirst val
   outputConstructorSexp <- foreignToSexp outputConstructorForeign
   case outputConstructorSexp of
@@ -37,77 +39,44 @@ biwaOutput val = do
     other ->
       Left ("Parse step output: output constructor not recognized: " <> Sexp.print other)
 
--- | The argument to `output-restart` can be so big that it crashes
--- | when we try to turn it into a string.
--- | For this reason we can't use `Sexp` as a parameter to this function,
--- | but must use `Foreign` instead.
-stringForeignToString :: Foreign -> Either String String
-stringForeignToString val = do
-  l <- Foreign.evalToForeign biwaStringExtractor
-  ints <- Foreign.applyClosure l [ val ]
-  let psInts = Foreign.toArrayInt ints :: Array Int
-  codepoints <-
-    for psInts
-      ( \n ->
-          case toEnum n of
-            Nothing ->
-              Left ("int not codepoint: " <> show n)
-
-            Just a ->
-              Right a
-      )
-  pure (String.fromCodePointArray (codepoints :: Array CodePoint))
-
--- | NOTE: This is BiwaScheme, not Midnight.
--- | This is in order to use the `list->js-array` BiwaScheme function.
-biwaStringExtractor :: String
-biwaStringExtractor =
-  """
-(lambda (str)
-  (if
-    (pair? str)
-    (if
-      (eqv? 'string-tag-midnight (car str)) ; NOTE: the `-midnight` suffix
-      (list->js-array (cadr str))
-      crash-string-not-tagged-with-string-tag) ; TODO: How to crash more informatively in biwa
-    crash-not-represented-as-tagged-list))
-"""
-
 foreignToSexp :: Foreign -> Either String Sexp
-foreignToSexp biwaForeign = do
-  biwaSexp <- GenericSexp.parse (MidnightBiwa.toBiwaString biwaForeign)
-  Translate.biwaSexpToMidnightSexp biwaSexp
+foreignToSexp jsVal = do
+  crash "there"
+  -- midnightSexp <- GenericSexp.parse (Foreign.toString jsVal)
+  -- Translate.biwaSexpToMidnightSexp biwaSexp
 
 foreignToSexpAllowClosures :: Foreign -> Either String Sexp
-foreignToSexpAllowClosures biwaForeign = do
-  biwaSexp <- GenericSexp.parse (MidnightBiwa.toBiwaString biwaForeign)
-  Translate.biwaSexpToMidnightSexp biwaSexp
+foreignToSexpAllowClosures jsVal = do
+  -- genericSexp <- GenericSexp.parse (Foreign.String jsVal)
+  crash "here"
+
+-- Translate.biwaSexpToMidnightSexp biwaSexp
 
 getFirst :: Foreign -> Either String Foreign
-getFirst biwa =
+getFirst val =
   lmap
     (\err -> "getFirst: " <> err)
-    (applyStringToForeign "(lambda (x) (car x))" biwa)
+    (applyStringToForeign "(lambda (x) (car x))" val)
 
 getSecond :: Foreign -> Either String Foreign
-getSecond biwa =
+getSecond jsVal =
   lmap
     (\err -> "getSecond: " <> err)
-    (applyStringToForeign "(lambda (x) (car (cdr x)))" biwa)
+    (applyStringToForeign "(lambda (x) (car (cdr x)))" jsVal)
 
 getThird :: Foreign -> Either String Foreign
-getThird biwa =
+getThird jsVal =
   lmap
     (\err -> "getThird: " <> err)
-    (applyStringToForeign "(lambda (x) (car (cdr (cdr x))))" biwa)
+    (applyStringToForeign "(lambda (x) (car (cdr (cdr x))))" jsVal)
 
 getFourth :: Foreign -> Either String Foreign
-getFourth biwa =
+getFourth jsVal =
   lmap
     (\err -> "getFourth: " <> err)
-    (applyStringToForeign "(lambda (x) (car (cdr (cdr (cdr x)))))" biwa)
+    (applyStringToForeign "(lambda (x) (car (cdr (cdr (cdr x)))))" jsVal)
 
 applyStringToForeign :: String -> Foreign -> Either String Foreign
-applyStringToForeign str biwa = do
-  l <- MidnightBiwa.evalToForeign str
-  MidnightBiwa.applyClosure l [ biwa ]
+applyStringToForeign str jsVal = do
+  f <- MidnightJS.evalToForeign str
+  MidnightJS.applyClosure f [ jsVal ]

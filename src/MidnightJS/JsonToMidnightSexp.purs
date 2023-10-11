@@ -1,4 +1,4 @@
-module MidnightJS.JsonToSexp where
+module MidnightJS.JsonToMidnightSexp where
 
 import Prelude
 
@@ -11,8 +11,8 @@ import Data.Traversable (for)
 import MidnightLang.Sexp (Sexp)
 import MidnightLang.Sexp as Sexp
 
-jsonToSexp :: Json -> Either String Sexp
-jsonToSexp json =
+jsonToMidnightSexp :: Json -> Either String Sexp
+jsonToMidnightSexp json =
   caseJson
     (\_ -> Left "unexpected null")
     (\b -> Left ("unexpected bool: " <> show b))
@@ -21,6 +21,6 @@ jsonToSexp json =
         Just int -> Right (Sexp.Int int)
     )
     (Right <<< Sexp.Symbol)
-    (\xs -> Sexp.List <<< List.fromFoldable <$> for xs jsonToSexp)
+    (\xs -> Sexp.List <<< List.fromFoldable <$> for xs jsonToMidnightSexp)
     (\_ -> Left ("unexpected object: " <> stringify json))
     json

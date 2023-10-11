@@ -63,8 +63,8 @@ midnightToJsMap =
     , Tuple ">" "greaterThan"
 
     -- Extra
-    , Tuple "trace" "trace-midnight-helper"
-    , Tuple "trace-bench" "trace-bench-midnight-helper"
+    , Tuple "trace" "traceMidnightHelper"
+    , Tuple "trace-bench" "tracebenchMidnightHelper"
     ]
 
 jsToMidnightMap :: Map String String

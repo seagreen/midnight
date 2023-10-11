@@ -1,17 +1,20 @@
 module MidnightJS.Transpile where
 
-import Lib.Debug
 import Prelude
 
+import Data.Array as Array
 import Data.Either (Either(..))
+import Data.Enum (fromEnum)
 import Data.List ((:))
 import Data.List as List
 import Data.Map as Map
 import Data.Maybe (Maybe(..))
 import Data.String (Pattern(..), Replacement(..))
 import Data.String as String
+import Data.String.CodePoints (CodePoint, codePointFromChar)
 import Data.Traversable (for)
 import Data.Tuple (Tuple(..))
+import Lib.Debug (crash)
 import MidnightJS.Imp (Imp(..))
 import MidnightJS.Translate as Translate
 import MidnightLang.Sexp (PsList, Sexp)
@@ -52,10 +55,50 @@ translateSymbol :: String -> String
 translateSymbol sym =
   case Map.lookup sym Translate.midnightToJsMap of
     Nothing ->
-      String.replaceAll (Pattern "-") (Replacement "_") sym <> "_midnight"
+      sanitize sym <> "_midnight"
 
     Just jsName ->
       jsName
+  where
+  sanitize :: String -> String
+  sanitize =
+    Array.foldMap sanitizeChar
+      <<< sanitizeFirstChar
+      <<< String.toCodePointArray
+      <<< String.replaceAll (Pattern "?") (Replacement "_q")
+      <<< String.replaceAll (Pattern "-") (Replacement "_")
+
+  sanitizeChar :: CodePoint -> String
+  sanitizeChar c =
+    if isAllowedChar c then String.singleton c
+    else replaceChar c
+
+  replaceChar :: CodePoint -> String
+  replaceChar c =
+    "$codepoint_" <> show (fromEnum c)
+
+  sanitizeFirstChar :: Array CodePoint -> Array CodePoint
+  sanitizeFirstChar xs =
+    case Array.uncons xs of
+      Just { head, tail } ->
+        if isAllowedFirstChar head then
+          xs
+        else
+          String.toCodePointArray (replaceChar head) <> tail
+
+      Nothing ->
+        crash "sanitizeFirstChar hit empty identifier"
+
+  isAllowedChar :: CodePoint -> Boolean
+  isAllowedChar c =
+    isAllowedFirstChar c
+      || (c >= codePointFromChar '0' && c <= codePointFromChar '1')
+
+  isAllowedFirstChar :: CodePoint -> Boolean
+  isAllowedFirstChar c =
+    (c >= codePointFromChar 'a' && c <= codePointFromChar 'z')
+      || (c >= codePointFromChar 'A' && c <= codePointFromChar 'Z')
+      || c == codePointFromChar '_'
 
 transpileLambda :: PsList Sexp -> Imp
 transpileLambda =

@@ -1,5 +1,6 @@
 module MidnightJS.AST where
 
+import Debug
 import Prelude
 
 import Data.Generic.Rep (class Generic)
@@ -20,7 +21,7 @@ data AST
   | App AST (List AST)
   | If AST AST AST
   | Array (List AST)
-  | JSInt Int
+  | Int Int
   | JSString String
   | Throw String
   --
@@ -74,6 +75,7 @@ serialize =
       serialize
         ( LamUnitImmediateInvoked
             ( Block
+                -- Const name (addLog name val)
                 ( ( (\(Tuple name val) -> Const name val)
                       <$> bindingList
                   )
@@ -82,8 +84,8 @@ serialize =
             )
         )
 
-    App f params ->
-      serialize f <> "(" <> serializeCommaSeparated params <> ")"
+    App f args ->
+      serialize f <> "(" <> serializeCommaSeparated args <> ")"
 
     Array xs ->
       "[" <> serializeCommaSeparated xs <> "]"
@@ -91,29 +93,31 @@ serialize =
     JSString sym ->
       "\"" <> sym <> "\""
 
-    JSInt n ->
+    Int n ->
       show n
 
     If predicate consequent alternative ->
-      serialize predicate
+      "("
+        <> serialize predicate
         <> """ === "t" ? """
         <> serialize consequent
         <> " : "
         <> serialize alternative
+        <> ")"
 
     JsBool b ->
       show b
 
     Block xs ->
-      "{" <> List.intercalate " " (serialize <$> xs) <> "}"
+      "{" <> List.intercalate "; " (serialize <$> xs) <> "}"
 
     JsLet name mVal ->
       case mVal of
         Nothing ->
-          "let " <> name <> ";"
+          "let " <> name
 
         Just val ->
-          "let " <> name <> " = " <> serialize val <> ";"
+          "let " <> name <> " = " <> serialize val
 
     While cond body ->
       "while (" <> serialize cond <> ") " <> serialize body
@@ -122,16 +126,16 @@ serialize =
       "!" <> name
 
     Const name val ->
-      "const " <> name <> " = " <> serialize val <> ";"
+      "const " <> name <> " = " <> serialize val
 
     Assignment name val ->
-      name <> " = " <> serialize val <> ";"
+      name <> " = " <> serialize val
 
     Return a ->
-      "return " <> serialize a <> ";"
+      "return " <> serialize a
 
     BareReturn ->
-      "return;"
+      "return"
 
     Throw e ->
       "throw " <> e
@@ -139,3 +143,32 @@ serialize =
 serializeCommaSeparated :: List AST -> String
 serializeCommaSeparated xs =
   List.intercalate ", " (serialize <$> xs)
+
+{-
+addLog :: String -> AST -> AST
+addLog name val =
+  case val of
+    Lam params body ->
+      Lam params
+        ( LamUnitImmediateInvoked
+            ( Block
+                (logStatement : Return (LamUnitImmediateInvoked body) : List.Nil)
+            )
+        )
+
+    LamVariadic param body ->
+      LamVariadic param
+        ( LamUnitImmediateInvoked
+            ( Block
+                (logStatement : Return (LamUnitImmediateInvoked body) : List.Nil)
+            )
+        )
+
+    _ ->
+      val
+  where
+  logStatement :: AST
+  logStatement =
+    App (Var "console.log") (List.singleton (JSString ("+++" <> name)))
+
+-}
