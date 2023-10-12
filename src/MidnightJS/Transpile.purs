@@ -243,43 +243,6 @@ transpileQuote =
         (\x acc -> Pair (transpileQuote x) acc)
         NilList
         xs
-    -- Array (transpileQuote <$> xs)
-    {-
-    case xs of
-      List.Nil ->
-        Array List.Nil
-
-      List.Cons x rest ->
-        Array
-          ( transpileQuote x
-              : transpileQuote (Sexp.List rest)
-              : List.Nil
-          )
-    -}
 
     Sexp.Int n ->
       Int n
-
-{-
-pairize :: Sexp -> Sexp
-pairize =
-  case _ of
-    Sexp.Symbol sym ->
-      Sexp.Symbol sym
-
-    Sexp.List xs ->
-      convertToConsList xs
-
-    Sexp.Int n ->
-      Sexp.Int n
-
-convertToConsList :: PsList Sexp -> Sexp
-convertToConsList xs =
-  case xs of
-    List.Nil ->
-      Sexp.List List.Nil
-
-    List.Cons x rest ->
-      -- TODO: perf   
-      Sexp.List (pairize x : convertToConsList rest : List.Nil)
--}
