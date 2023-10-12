@@ -2,6 +2,9 @@ module MidnightJS.Transpile where
 
 import Prelude
 
+import Control.Monad.Except.Trans (ExceptT, except, runExceptT)
+import Control.Monad.Trampoline (Trampoline, delay, done, runTrampoline)
+import Control.Monad.Trans.Class (lift)
 import Data.Array as Array
 import Data.Either (Either(..))
 import Data.Enum (fromEnum)
@@ -23,14 +26,18 @@ import MidnightLang.Sexp as Sexp
 
 transpile :: Sexp -> Imp
 transpile =
+  runTrampoline <<< transpileGo
+
+transpileGo :: Sexp -> Trampoline Imp
+transpileGo =
   case _ of
     Sexp.Symbol sym ->
-      Var (translateSymbol sym)
+      done (Var (translateSymbol sym))
 
     Sexp.List xs ->
       case xs of
         List.Nil ->
-          Throw "Evaluated empty list"
+          done (Throw "Evaluated empty list")
 
         List.Cons x rest ->
           case x of
@@ -41,16 +48,18 @@ transpile =
               transpileLet rest
 
             Sexp.Symbol "quote" ->
-              quoteArgs rest
+              done (quoteArgs rest)
 
             Sexp.Symbol "if" ->
               transpileIf rest
 
-            _ ->
-              App (transpile x) (transpile <$> rest)
+            _ -> do
+              xImp <- transpileGo x
+              restImp <- for rest transpileGo
+              done (App xImp restImp)
 
     Sexp.Int n ->
-      Int n
+      done (Int n)
 
 translateSymbol :: String -> String
 translateSymbol sym =
@@ -101,36 +110,48 @@ translateSymbol sym =
       || (c >= codePointFromChar 'A' && c <= codePointFromChar 'Z')
       || c == codePointFromChar '_'
 
-transpileLambda :: PsList Sexp -> Imp
+transpileLambda :: PsList Sexp -> Trampoline Imp
 transpileLambda =
   case _ of
     params : body : List.Nil ->
       case params of
-        Sexp.Symbol sym ->
+        Sexp.Symbol sym -> do
+          bodyImp <- transpileGo body
           -- NOTE: note the translateSymbols
-          LamVariadic (translateSymbol sym) (transpile body)
+          done (LamVariadic (translateSymbol sym) bodyImp)
 
         Sexp.List xs ->
-          toStringParams
-            xs
-            ( \stringParams ->
-                Lam (translateSymbol <$> stringParams) (transpile body)
-            )
+          case toStringParams xs of
+            Left e ->
+              done
+                ( Throw
+                    ( "Expected symbol for lambda parameter, but got: "
+                        <> e
+                    )
+                )
+
+            Right stringParams -> do
+              bodyImp <- transpileGo body
+              done (Lam (translateSymbol <$> stringParams) bodyImp)
 
         Sexp.Int n ->
-          Throw
-            ( "Expected symbol or list of symbols for lambda expression, but got: "
-                <> show n
+          done
+            ( Throw
+                ( "Expected symbol or list of symbols for lambda expression, but got: "
+                    <> show n
+                )
             )
 
     params ->
-      Throw
-        ( "Expected two arguments for lambda expression, but got: "
-            <> show params
+      done
+        ( Throw
+            ( "Expected two arguments for lambda expression, but got: "
+                <> show params
+            )
         )
   where
-  toStringParams :: PsList Sexp -> (PsList String -> Imp) -> Imp
-  toStringParams params f =
+  toStringParams :: PsList Sexp -> Either String (PsList String)
+  toStringParams params =
     let
       toString :: Sexp -> Either String String
       toString =
@@ -144,67 +165,71 @@ transpileLambda =
           Sexp.Int n ->
             Left (show n)
     in
-      case for params toString of
-        Left e ->
-          Throw
-            ( "Expected symbol for lambda parameter, but got: "
-                <> e
-            )
+      for params toString
 
-        Right stringParams ->
-          f stringParams
-
-transpileLet :: PsList Sexp -> Imp
+transpileLet :: PsList Sexp -> Trampoline Imp
 transpileLet =
   case _ of
     bindingList : body : List.Nil ->
       case bindingList of
-        Sexp.List bindingSexps ->
-          case transpileBindings bindingSexps of
+        Sexp.List bindingSexps -> do
+          eBindingsImp <- runExceptT (transpileBindings bindingSexps)
+          case eBindingsImp of
             Left e ->
-              Throw e
+              done (Throw e)
 
-            Right bindings ->
-              Let bindings (transpile body)
+            Right bindings -> do
+              bodyImp <- transpileGo body
+              done (Let bindings bodyImp)
 
         _ ->
-          Throw
-            ( "Expected let bindings to be a list, but got: "
-                <> show bindingList
+          done
+            ( Throw
+                ( "Expected let bindings to be a list, but got: "
+                    <> show bindingList
+                )
             )
 
     params ->
-      Throw
-        ( "Expected two arguments for let expression, but got: "
-            <> show params
+      done
+        ( Throw
+            ( "Expected two arguments for let expression, but got: "
+                <> show params
+            )
         )
   where
-  transpileBindings :: PsList Sexp -> Either String (PsList (Tuple String Imp))
+  transpileBindings :: PsList Sexp -> ExceptT String Trampoline (PsList (Tuple String Imp))
   transpileBindings bindingSexps =
     let
-      toBinding :: Sexp -> Either String (Tuple String Imp)
+      toBinding :: Sexp -> ExceptT String Trampoline (Tuple String Imp)
       toBinding =
         case _ of
-          Sexp.List (Sexp.Symbol name : val : List.Nil) ->
+          Sexp.List (Sexp.Symbol name : val : List.Nil) -> do
+            valImp <- lift (transpileGo val)
             -- NOTE the translateSymbol:
-            Right (Tuple (translateSymbol name) (transpile val))
+            pure (Tuple (translateSymbol name) valImp)
 
           other ->
-            Left ("Expected let binding list entry, got: " <> show other)
+            except (Left ("Expected let binding list entry, got: " <> show other))
 
     in
       for bindingSexps toBinding
 
-transpileIf :: PsList Sexp -> Imp
+transpileIf :: PsList Sexp -> Trampoline Imp
 transpileIf =
   case _ of
-    predicate : consequent : alternative : List.Nil ->
-      If (transpile predicate) (transpile consequent) (transpile alternative)
+    predicate : consequent : alternative : List.Nil -> do
+      predicateImp <- transpileGo predicate
+      consequentImp <- transpileGo consequent
+      alternativeImp <- transpileGo alternative
+      done (If predicateImp consequentImp alternativeImp)
 
     params ->
-      Throw
-        ( "Expected three arguments for if expression, but got: "
-            <> show params
+      done
+        ( Throw
+            ( "Expected three arguments for if expression, but got: "
+                <> show params
+            )
         )
 
 quoteArgs :: PsList Sexp -> Imp
@@ -221,28 +246,47 @@ quoteArgs =
 
 transpileQuote :: Sexp -> Imp
 transpileQuote =
-  case _ of
-    Sexp.Symbol sym ->
-      -- NOTE(QUOTED_SYMBOLS_NOT_SANITIZED)
-      --
-      -- When sent through an eval they get become variables
-      -- and get sanitized, but until then they're not.
-      --
-      -- For example, when used in a comparison:
-      -- ```
-      -- symbol-eq? 'input-normal input
-      -- ```
-      --
-      -- At first I thought the outside system would need to pass in
-      -- `input_normal_midnight` for the input variable,
-      -- but this isn't correct.
-      ImpString sym
+  runTrampoline <<< go
+  where
+  -- Example Trampoline use:
+  -- https://github.com/pure-c/purec/blob/1b7ff43cc011efd4ebb44cfa389e16a7ca954c60/src/Language/PureScript/CodeGen/C/AST.purs#L257
+  go :: Sexp -> Trampoline Imp
+  go =
+    case _ of
+      Sexp.Symbol sym ->
+        -- NOTE(QUOTED_SYMBOLS_NOT_SANITIZED)
+        --
+        -- When sent through an eval they get become variables
+        -- and get sanitized, but until then they're not.
+        --
+        -- For example, when used in a comparison:
+        -- ```
+        -- symbol-eq? 'input-normal input
+        -- ```
+        --
+        -- At first I thought the outside system would need to pass in
+        -- `input_normal_midnight` for the input variable,
+        -- but this isn't correct.
+        done (ImpString sym)
 
-    Sexp.List xs ->
-      foldr
-        (\x acc -> Pair (transpileQuote x) acc)
-        NilList
-        xs
+      Sexp.List xs ->
+        foldrM
+          ( \x acc -> do
+              xImp <- go x
+              done (Pair xImp acc)
+          )
+          NilList
+          xs
 
-    Sexp.Int n ->
-      Int n
+      Sexp.Int n ->
+        done (Int n)
+
+  -- TODO: hmm https://discourse.purescript.org/t/where-is-monadic-fold-right/3701
+  foldrM f z =
+    -- foldr's stack safe for Lists:
+    -- https://github.com/purescript/purescript-lists/blob/26e03e387c027ba10a65524e1b7b9c958dee1c2f/src/Data/List/Types.purs#L102
+    foldr
+      ( \x acc ->
+          f x =<< acc
+      )
+      (pure z)

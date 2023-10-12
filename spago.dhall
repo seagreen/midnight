@@ -14,6 +14,7 @@
   , "enums"
   , "foldable-traversable"
   , "foreign"
+  , "free"
   , "halogen"
   , "halogen-svg-elems"
   , "integers"

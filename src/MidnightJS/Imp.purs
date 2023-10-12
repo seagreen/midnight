@@ -1,13 +1,15 @@
 module MidnightJS.Imp where
 
-import Lib.Debug
 import Prelude
 
+import Control.Monad.Except.Trans (ExceptT, except, runExceptT)
+import Control.Monad.Trampoline (Trampoline, delay, done, runTrampoline)
 import Data.Generic.Rep (class Generic)
 import Data.List (List, (:))
 import Data.List as List
 import Data.Maybe (Maybe(..))
 import Data.Show.Generic (genericShow)
+import Data.Traversable (for)
 import Data.Tuple (Tuple(..))
 import MidnightJS.AST (AST)
 import MidnightJS.AST as AST
@@ -41,90 +43,108 @@ instance Show Imp where
 
 toAST :: Imp -> AST
 toAST =
+  runTrampoline <<< toASTGo
+
+toASTGo :: Imp -> Trampoline AST
+toASTGo =
   case _ of
     Var id ->
-      AST.Var id
+      done (AST.Var id)
 
     Lam params body ->
-      AST.Lam params (toAST body)
+      AST.Lam params <$> toASTGo body
 
     LamVariadic param body ->
-      AST.LamVariadic param (toAST body)
+      AST.LamVariadic param <$> toASTGo body
 
-    Let bindingList body ->
-      AST.Let
-        ( (\(Tuple name val) -> Tuple name (toAST val))
-            <$> bindingList
-        )
-        (toAST body)
+    Let bindingList body -> do
+      bindingListAst <-
+        for bindingList
+          ( \(Tuple name val) ->
+              Tuple name <$> toASTGo val
+          )
+      bodyAst <- toASTGo body
+      done (AST.Let bindingListAst bodyAst)
 
-    App f params ->
-      AST.App (toAST f) (toAST <$> params)
+    App f args -> do
+      fAst <- toASTGo f
+      argsAst <- for args toASTGo
+      done (AST.App fAst argsAst)
 
     NilList ->
-      AST.NilList
+      done AST.NilList
 
     Pair a b ->
-      AST.Pair (toAST a) (toAST b)
+      AST.Pair <$> toASTGo a <*> toASTGo b
 
     ImpString sym ->
-      AST.JSString sym
+      done (AST.JSString sym)
 
     Int n ->
-      AST.Int n
+      done (AST.Int n)
 
     If predicate consequent alternative ->
-      AST.If (toAST predicate) (toAST consequent) (toAST alternative)
+      AST.If
+        <$> toASTGo predicate
+        <*> toASTGo consequent
+        <*> toASTGo alternative
 
-    TceFunction tce_metavar_name params body ->
+    TceFunction tce_metavar_name params body -> do
       let
         tceParams =
           (\param -> tce_metavar_name <> "_" <> param)
             <$> params
-      in
-        AST.Lam tceParams
-          ( AST.Block
-              ( AST.JsLet (tce_metavar_name <> "_done") (Just (AST.JsBool false))
-                  : AST.JsLet (tce_metavar_name <> "_result") Nothing
-                  : AST.Const (tce_metavar_name <> "_loop") (toAST body)
-                  : AST.While
-                      (AST.Not (tce_metavar_name <> "_done"))
-                      ( AST.Block
-                          ( AST.Assignment
-                              (tce_metavar_name <> "_result")
-                              ( AST.App
-                                  (AST.Var (tce_metavar_name <> "_loop"))
-                                  (AST.Var <$> tceParams)
-                              ) : List.Nil
-                          )
-                      )
-                  : AST.Return (AST.Var (tce_metavar_name <> "_result"))
-                  : List.Nil
-              )
-          )
-
-    TceBaseCase tce_metavar_name imp ->
-      AST.LamUnitImmediateInvoked
-        ( AST.Block
-            ( (AST.Assignment (tce_metavar_name <> "_done") (AST.JsBool true))
-                : AST.Return (toAST imp)
-                : List.Nil
+      bodyAst <- toASTGo body
+      done
+        ( AST.Lam tceParams
+            ( AST.Block
+                ( AST.JsLet (tce_metavar_name <> "_done") (Just (AST.JsBool false))
+                    : AST.JsLet (tce_metavar_name <> "_result") Nothing
+                    : AST.Const (tce_metavar_name <> "_loop") bodyAst
+                    : AST.While
+                        (AST.Not (tce_metavar_name <> "_done"))
+                        ( AST.Block
+                            ( AST.Assignment
+                                (tce_metavar_name <> "_result")
+                                ( AST.App
+                                    (AST.Var (tce_metavar_name <> "_loop"))
+                                    (AST.Var <$> tceParams)
+                                ) : List.Nil
+                            )
+                        )
+                    : AST.Return (AST.Var (tce_metavar_name <> "_result"))
+                    : List.Nil
+                )
             )
         )
 
-    TceRecursiveCall tce_metavar_name args ->
-      let
-        f :: Tuple String Imp -> AST
-        f (Tuple param imp) =
-          AST.Assignment (tce_metavar_name <> "_" <> param) (toAST imp)
+    TceBaseCase tce_metavar_name imp -> do
+      ast <- toASTGo imp
+      done
+        ( AST.LamUnitImmediateInvoked
+            ( AST.Block
+                ( (AST.Assignment (tce_metavar_name <> "_done") (AST.JsBool true))
+                    : AST.Return ast
+                    : List.Nil
+                )
+            )
+        )
 
-      in
-        AST.LamUnitImmediateInvoked
-          ( AST.Block
-              ( (f <$> args)
-                  <> List.singleton AST.BareReturn
-              )
-          )
+    TceRecursiveCall tce_metavar_name statements -> do
+      let
+        f :: Tuple String Imp -> Trampoline AST
+        f (Tuple param imp) =
+          AST.Assignment (tce_metavar_name <> "_" <> param) <$> toASTGo imp
+
+      statementsAst <- for statements f
+      done
+        ( AST.LamUnitImmediateInvoked
+            ( AST.Block
+                ( statementsAst
+                    <> List.singleton AST.BareReturn
+                )
+            )
+        )
 
     Throw e ->
-      AST.Throw e
+      done (AST.Throw e)
