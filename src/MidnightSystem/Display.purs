@@ -1,7 +1,6 @@
 module MidnightSystem.Display where
 
 import Prelude
-import Debug
 
 import Data.Array (fromFoldable)
 import Data.Array as Array
@@ -27,8 +26,8 @@ type Display =
   }
 
 parse :: Sexp -> Either String Display
-parse sexp =
-  case spyWith "display parse" show sexp of
+parse =
+  case _ of
     Sexp.List (cursorPositionSexp : textSexp : PsList.Nil) -> do
       cursorPosition <- parseCursorPosition cursorPositionSexp
       text <- clipToFit <$> parseText textSexp

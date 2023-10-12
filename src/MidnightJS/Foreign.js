@@ -148,8 +148,8 @@ const crash_now_midnight = a => {
   throw new Error(a);
 }
 
-const traceMidnightHelper = a => {
-  console.log(a);
+const traceMidnightHelper = (label, a) => {
+  console.log(label + " " + a);
   return a;
 }
 
