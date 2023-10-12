@@ -2,6 +2,7 @@ module MidnightJS
   ( eval
   , evalToSexp
   , evalJsonToJson
+  , evalJsonToJsonNoCatch
   , evalToForeign
   , applyClosure
   , midnightToJS
@@ -21,6 +22,7 @@ import Data.Either (Either(..))
 import Data.List (List)
 import Data.List as List
 import Foreign (Foreign)
+import Lib.Debug (crash)
 import MidnightJS.AST as AST
 import MidnightJS.Foreign as Foreign
 import MidnightJS.Imp as Imp
@@ -69,6 +71,15 @@ evalJsonToJson jsonVal = do
   lmap
     (\e -> "eval error: " <> e)
     (Foreign.evalToJson (midnightToJS sexpVal))
+
+evalJsonToJsonNoCatch :: Json -> Json
+evalJsonToJsonNoCatch jsonVal = do
+  case jsonToMidnightSexp jsonVal of
+    Left e ->
+      crash ("jsonToMidnightSexp error: " <> e)
+
+    Right sexpVal ->
+      Foreign.evalToJsonNoCatch (midnightToJS sexpVal)
 
 evalToForeign :: String -> Either String Foreign
 evalToForeign midnightSrc = do

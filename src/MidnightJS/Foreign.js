@@ -10,6 +10,10 @@ export const _evalToJson = left => right => src => {
   }
 }
 
+export const _evalToJsonNoCatch = src => {
+  return evalWithBuiltinSnippet(src);
+}
+
 // Same as _evalToJson, but given a different type on the PS side.
 export const _evalToForeign = left => right => src => {
   try {
@@ -35,8 +39,15 @@ export const _toString = js_value => {
 
 const globalObject = typeof window !== 'undefined' ? window : global;
 
+/*
 globalObject.evalJsonToJsonAttachedToGlobalObject = (a) => {
+  // TODO: is the value0 for the `Right` constructor?
   return MidnightJS.evalJsonToJson(a).value0;
+}
+*/
+
+globalObject.evalJsonToJsonNoCatchAttachedToGlobalObject = (a) => {
+  return MidnightJS.evalJsonToJsonNoCatch(a);
 }
 
 const evalWithBuiltinSnippet = jsExpr => {
@@ -57,7 +68,7 @@ const evalMidnight = midnightAsJson => {
   const getRandomDigits = max => (Math.floor(Math.random() * max)).toString().padStart(4, '0');
   const label = 'eval_internal_' + getRandomDigits(9999)
   console.time(label);
-  const a = globalObject.evalJsonToJsonAttachedToGlobalObject(midnightAsJson);
+  const a = globalObject.evalJsonToJsonNoCatchAttachedToGlobalObject(midnightAsJson);
   console.timeEnd(label);
   return a;
 }
