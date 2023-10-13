@@ -17,6 +17,7 @@ import MidnightSystem as MidnightSystem
 import MidnightSystem.Keyboard as Keyboard
 import Node.Encoding (Encoding(..))
 import Node.FS.Sync (writeTextFile)
+import Test.EditorHuge as EditorHuge
 import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (fail, shouldEqual, shouldNotSatisfy)
 
@@ -112,6 +113,43 @@ spec = do
 
     it "editor accepts some commands" do
       case MidnightSystem.moore EditorSource.string of
+        Left (StartupFailure e) ->
+          fail e
+
+        Right moore ->
+          let
+            outputs =
+              Moore.stepMultipleUnlessPred moore getCrash
+                ( Keyboard.noMeta (Keyboard.KeyArrow Keyboard.ArrowUp)
+                    : Keyboard.noMeta (Keyboard.KeyArrow Keyboard.ArrowDown)
+                    : Keyboard.noMeta (Keyboard.KeyArrow Keyboard.ArrowLeft)
+                    : Keyboard.noMeta (Keyboard.KeyArrow Keyboard.ArrowRight)
+                    : { key: Keyboard.KeyEnter, ctrlOrMeta: true } -- restart
+                    : Keyboard.aKey
+                    : Keyboard.aKey
+                    : Keyboard.aKey
+                    : { key: Keyboard.KeyChar 'a', ctrlOrMeta: true }
+                    : Keyboard.noMeta (Keyboard.KeyEnter)
+                    : Keyboard.noMeta (Keyboard.KeyBackspace)
+                    : PsList.Nil
+                )
+          in
+            outputs `shouldNotSatisfy` isJust
+
+    it "performance check - huge editor with extra code accepts some commands" do
+      -- Quick-and-dirty performance test.
+      --
+      -- EditorHuge has 2 extra copy/paste copies of the midnight-plus-macros quoted expansion.
+      -- it expands both of them, then proceeds normally with the original.
+      --
+      -- This tests the PureScript transpiler for a large file,
+      -- makes sure JS eval can handle it,
+      -- and tests the Midnight parser with a large file than normal
+      -- during the "restart" triggered by ctrl-ENTER below.
+      --
+      -- However, it doesn't actually test running of more code,
+      -- since the two extra midnight-plus-macros are just thrown away.
+      case MidnightSystem.moore EditorHuge.string of
         Left (StartupFailure e) ->
           fail e
 
