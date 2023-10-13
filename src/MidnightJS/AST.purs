@@ -3,15 +3,12 @@ module MidnightJS.AST where
 import Debug
 import Prelude
 
-import Control.Monad.Except.Trans (ExceptT, except, runExceptT)
-import Control.Monad.Trampoline (Trampoline, delay, done, runTrampoline)
 import Data.Generic.Rep (class Generic)
 import Data.List (List, (:))
 import Data.List as List
 import Data.Maybe (Maybe(..))
 import Data.Show.Generic (genericShow)
 import Data.String as String
-import Data.Traversable (for)
 import Data.Tuple (Tuple(..))
 
 type Id = String
@@ -54,48 +51,35 @@ instance Show AST where
 
 serialize :: AST -> String
 serialize =
-  runTrampoline <<< serializeGo
-
-serializeGo :: AST -> Trampoline String
-serializeGo =
   case _ of
     Var id ->
-      done id
+      id
 
-    Lam params body -> do
-      bodyStr <- serializeGo body
-      done
-        ( "(("
-            <> List.intercalate ", " params
-            <> ") => "
-            <> bodyStr
-            <> ")"
-        )
+    Lam params body ->
+      "(("
+        <> List.intercalate ", " params
+        <> ") => "
+        <> serialize body
+        <> ")"
 
-    LamVariadic param body -> do
-      bodyStr <- serializeGo body
-      done
-        ( "((..."
-            <> param
-            <> "$$" -- TODO
-            <> ") => {const "
-            <> param
-            <> " = arrayToLinkedList("
-            <> param
-            <> "$$); "
-            <> "return "
-            <> bodyStr
-            <> ";})"
-        )
+    LamVariadic param body ->
+      "((..."
+        <> param
+        <> "$$" -- TODO
+        <> ") => {const "
+        <> param
+        <> " = arrayToLinkedList("
+        <> param
+        <> "$$); "
+        <> "return "
+        <> serialize body
+        <> ";})"
 
-    LamUnitImmediateInvoked body -> do
-      bodyStr <- serializeGo body
-      done
-        ( "(() => " <> bodyStr <> ")()"
-        )
+    LamUnitImmediateInvoked body ->
+      "(() => " <> serialize body <> ")()"
 
     Let bindingList body ->
-      serializeGo
+      serialize
         ( LamUnitImmediateInvoked
             ( Block
                 -- Const name (addLog name val)
@@ -107,83 +91,68 @@ serializeGo =
             )
         )
 
-    App f args -> do
-      fStr <- serializeGo f
-      argsStr <- serializeCommaSeparated args
-      done (fStr <> "(" <> argsStr <> ")")
+    App f args ->
+      serialize f <> "(" <> serializeCommaSeparated args <> ")"
 
     NilList ->
-      done "[]"
+      "[]"
 
-    Pair a b -> do
-      contentsStr <- serializeCommaSeparated (a : b : List.Nil)
-      done ("[" <> contentsStr <> "]")
+    Pair a b ->
+      "[" <> serializeCommaSeparated (a : b : List.Nil) <> "]"
 
     JSString sym ->
-      done ("\"" <> sym <> "\"")
+      "\"" <> sym <> "\""
 
     Int n ->
-      done (show n)
+      show n
 
-    If predicate consequent alternative -> do
-      predicateStr <- serializeGo predicate
-      consequentStr <- serializeGo consequent
-      alternativeStr <- serializeGo alternative
-      done
-        ( "("
-            <> predicateStr
-            <> """ === "t" ? """
-            <> consequentStr
-            <> " : "
-            <> alternativeStr
-            <> ")"
-        )
+    If predicate consequent alternative ->
+      "("
+        <> serialize predicate
+        <> """ === "t" ? """
+        <> serialize consequent
+        <> " : "
+        <> serialize alternative
+        <> ")"
+
     JsBool b ->
-      done (show b)
+      show b
 
-    Block xs -> do
-      strs <- for xs serializeGo
-      done ("{" <> List.intercalate "; " strs <> "}")
+    Block xs ->
+      "{" <> List.intercalate "; " (serialize <$> xs) <> "}"
 
     JsLet name mVal ->
       case mVal of
         Nothing ->
-          done ("let " <> name)
+          "let " <> name
 
-        Just val -> do
-          valStr <- serializeGo val
-          done ("let " <> name <> " = " <> valStr)
+        Just val ->
+          "let " <> name <> " = " <> serialize val
 
-    While cond body -> do
-      condStr <- serializeGo cond
-      bodyStr <- serializeGo body
-      done ("while (" <> condStr <> ") " <> bodyStr)
+    While cond body ->
+      "while (" <> serialize cond <> ") " <> serialize body
 
     Not name ->
-      done ("!" <> name)
+      "!" <> name
 
-    Const name val -> do
-      valStr <- serializeGo val
-      done ("const " <> name <> " = " <> valStr)
+    Const name val ->
+      "const " <> name <> " = " <> serialize val
 
-    Assignment name val -> do
-      valStr <- serializeGo val
-      done (name <> " = " <> valStr)
+    Assignment name val ->
+      name <> " = " <> serialize val
 
-    Return a -> do
-      aStr <- serializeGo a
-      done ("return " <> aStr)
+    Return a ->
+      "return " <> serialize a
 
     BareReturn ->
-      done "return"
+      "return"
 
     Throw e ->
-      done ("throw " <> e)
+      "throw " <> e
 
-serializeCommaSeparated :: List AST -> Trampoline String
-serializeCommaSeparated xs = do
-  strs <- for xs serializeGo
-  done (List.intercalate ", " strs)
+serializeCommaSeparated :: List AST -> String
+serializeCommaSeparated xs =
+  List.intercalate ", " (serialize <$> xs)
 
 {-
 addLog :: String -> AST -> AST
