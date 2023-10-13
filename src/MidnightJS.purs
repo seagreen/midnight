@@ -2,7 +2,7 @@ module MidnightJS
   ( eval
   , evalToSexp
   , evalJsonToJson
-  , evalJsonToJsonNoCatch
+  , evalJsonToForeignNoCatch
   , evalToForeign
   , applyClosure
   , midnightToJS
@@ -72,14 +72,14 @@ evalJsonToJson jsonVal = do
     (\e -> "eval error: " <> e)
     (Foreign.evalToJson (midnightToJS sexpVal))
 
-evalJsonToJsonNoCatch :: Json -> Json
-evalJsonToJsonNoCatch jsonVal = do
+evalJsonToForeignNoCatch :: Json -> Foreign
+evalJsonToForeignNoCatch jsonVal = do
   case jsonToMidnightSexp jsonVal of
     Left e ->
       crash ("jsonToMidnightSexp error: " <> e)
 
     Right sexpVal ->
-      Foreign.evalToJsonNoCatch (midnightToJS sexpVal)
+      Foreign.evalToForeignNoCatch (midnightToJS sexpVal)
 
 evalToForeign :: String -> Either String Foreign
 evalToForeign midnightSrc = do

@@ -20,13 +20,13 @@ evalToJson :: String -> Either String Json
 evalToJson =
   _evalToJson Left Right
 
-foreign import _evalToJsonNoCatch
+foreign import _evalToForeignNoCatch
   :: String
-  -> Json
+  -> Foreign
 
-evalToJsonNoCatch :: String -> Json
-evalToJsonNoCatch =
-  _evalToJsonNoCatch
+evalToForeignNoCatch :: String -> Foreign
+evalToForeignNoCatch =
+  _evalToForeignNoCatch
 
 foreign import _evalToForeign
   :: (forall x y. x -> Either x y)

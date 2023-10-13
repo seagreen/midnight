@@ -123,7 +123,7 @@ spec = do
                     : Keyboard.noMeta (Keyboard.KeyArrow Keyboard.ArrowDown)
                     : Keyboard.noMeta (Keyboard.KeyArrow Keyboard.ArrowLeft)
                     : Keyboard.noMeta (Keyboard.KeyArrow Keyboard.ArrowRight)
-                    -- : { key: Keyboard.KeyEnter, ctrlOrMeta: true } -- restart
+                    : { key: Keyboard.KeyEnter, ctrlOrMeta: true } -- restart
                     : Keyboard.aKey
                     : Keyboard.aKey
                     : Keyboard.aKey

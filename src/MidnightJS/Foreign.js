@@ -10,7 +10,7 @@ export const _evalToJson = left => right => src => {
   }
 }
 
-export const _evalToJsonNoCatch = src => {
+export const _evalToForeignNoCatch = src => {
   return evalWithBuiltinSnippet(src);
 }
 
@@ -46,8 +46,8 @@ globalObject.evalJsonToJsonAttachedToGlobalObject = (a) => {
 }
 */
 
-globalObject.evalJsonToJsonNoCatchAttachedToGlobalObject = (a) => {
-  return MidnightJS.evalJsonToJsonNoCatch(a);
+globalObject.evalJsonToForeignNoCatchAttachedToGlobalObject = (a) => {
+  return MidnightJS.evalJsonToForeignNoCatch(a);
 }
 
 const evalWithBuiltinSnippet = jsExpr => {
@@ -61,14 +61,13 @@ const addBuiltinSnippet = jsExpr => {
 
 const builtinSnippet = `
 // Lispy
-
 const globalObject = typeof window !== 'undefined' ? window : global;
 
 const evalMidnight = midnightAsJson => {
   const getRandomDigits = max => (Math.floor(Math.random() * max)).toString().padStart(4, '0');
   const label = 'eval_internal_' + getRandomDigits(9999)
   console.time(label);
-  const a = globalObject.evalJsonToJsonNoCatchAttachedToGlobalObject(midnightAsJson);
+  const a = globalObject.evalJsonToForeignNoCatchAttachedToGlobalObject(midnightAsJson);
   console.timeEnd(label);
   return a;
 }
