@@ -81,11 +81,19 @@ const ifMidnight = (predicate, consequent, alternative) => {
 // Pair
 
 const car = xs => {
-  return xs[0];
+  if (Array.isArray(xs) & xs.length >= 1) {
+    return xs[0];
+  } else {
+    throw new Error("car: expected non-empty list: " + xs.toString());
+  }
 }
 
 const cdr = xs => {
-  return xs[1];
+  if (Array.isArray(xs) & xs.length >= 2) {
+    return xs[1];
+  } else {
+    throw new Error("car: expected list of at least two elements: " + xs.toString());
+  }
 }
 
 const cons = (x, xs) => {
