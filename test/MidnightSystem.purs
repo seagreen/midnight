@@ -173,6 +173,26 @@ spec = do
           in
             outputs `shouldNotSatisfy` isJust
 
+    {-
+    -- Disabled because it's slow.
+    --
+    -- NOTE: At 5000 it stack overflows.
+    it "lots-o-restarts" do
+      case MidnightSystem.moore EditorSource.string of
+        Left (StartupFailure e) ->
+          fail e
+
+        Right moore ->
+          let
+            listReplicate n x = List.fromFoldable (Data.Array.replicate n x)
+
+            outputs =
+              Moore.stepMultipleUnlessPred moore getCrash
+                (listReplicate 3000 { key: Keyboard.KeyChar 'a', ctrlOrMeta: true })
+          in
+            outputs `shouldNotSatisfy` isJust
+    -}
+
 getCrash :: Output -> Maybe String
 getCrash = case _ of
   OutputCrash e ->
