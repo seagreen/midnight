@@ -8,12 +8,12 @@ import Data.Generic.Rep (class Generic)
 import Data.Show.Generic (genericShow)
 import Foreign (Foreign)
 import Lib.Moore (Moore(..))
-import MidnightBiwa as MidnightBiwa
+import MidnightJS as MidnightJS
 import MidnightLang.Sexp (Sexp)
 import MidnightSystem.Display (Display)
 import MidnightSystem.Keyboard (Keyboard)
 import MidnightSystem.Keyboard as Keyboard
-import MidnightSystem.Output (StepOutput(..), biwaOutput)
+import MidnightSystem.Output (StepOutput(..), jsToOutput)
 import MidnightSystem.Startup as Startup
 
 data Output
@@ -39,34 +39,34 @@ instance Show StartupFailure where
 moore :: String -> Either StartupFailure (Moore Keyboard Output)
 moore midnightSrc =
   lmap StartupFailure do
-    -- Evaluate our Midnight source code, turning it into a Biwa closure.
+    -- Evaluate our Midnight source code, turning it into a JS closure.
     --
     -- (this is slow)
     mainMidnight <-
       lmap
         (\err -> "Evaluation of source failed: " <> err)
-        (MidnightBiwa.evalToForeign midnightSrc)
+        (MidnightJS.evalToForeign midnightSrc)
 
     -- Starting with the original Midnight source again,
-    -- turn it into a biwa value containing a Midnight string.
+    -- turn it into a JS value containing a Midnight string.
     startingInput <-
       lmap
         (\err -> "Evaluation of starting input failed: " <> err)
         (Startup.editorStringToInput midnightSrc)
 
-    -- Apply the Biwa closure to the Midnight string.
+    -- Apply the JS closure to the Midnight string.
     --
     -- (this is slow too)
     systemOutput <-
       lmap
         (\err -> "Application of the main function failed: " <> err)
-        (MidnightBiwa.applyClosure mainMidnight [ startingInput ])
+        (MidnightJS.applyClosure mainMidnight [ startingInput ])
 
     -- Parse the output.
     StepNormal { displaySexp, display, store, ephem } <-
       lmap
         (\err -> "Processing of the output failed: " <> err)
-        (biwaOutput systemOutput)
+        (jsToOutput systemOutput)
 
     pure
       ( Moore
@@ -97,34 +97,34 @@ stepper { step, store, ephem } k =
     keyboardForeign <-
       lmap
         (\err -> "Couldn't eval keyboard input: " <> err)
-        (MidnightBiwa.evalToForeign (Keyboard.toBiwa k))
+        (MidnightJS.evalToForeign (Keyboard.toMidnightQuoted k))
 
     inputMaker <-
       lmap
-        (\err -> "Couldn't eval biwaToInputCode: " <> err)
-        (MidnightBiwa.evalToForeign biwaToInputCode)
+        (\err -> "Couldn't eval jsToInputCode: " <> err)
+        (MidnightJS.evalToForeign jsToInputCode)
 
     inputForeign <-
       lmap
         (\err -> "Couldn't create input: " <> err)
-        (MidnightBiwa.applyClosure inputMaker [ store, ephem, keyboardForeign ])
+        (MidnightJS.applyClosure inputMaker [ store, ephem, keyboardForeign ])
 
     val <-
       lmap
         (\err -> "Couldn't apply step: " <> err)
-        (MidnightBiwa.applyClosure step [ inputForeign ])
+        (MidnightJS.applyClosure step [ inputForeign ])
 
     stepOutput <-
       lmap
         (\err -> "Couldn't process output: " <> err)
-        (biwaOutput val)
+        (jsToOutput val)
 
     case stepOutput of
       StepNormal { displaySexp, display, store: newStore, ephem: newEphem } ->
         pure { displaySexp, display, store: newStore, ephem: newEphem }
 
-biwaToInputCode :: String
-biwaToInputCode =
+jsToInputCode :: String
+jsToInputCode =
   """
 (lambda (store ephem k)
   (let

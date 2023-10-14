@@ -1,7 +1,56 @@
-(let
+module Test.EditorHuge
+  ( string
+  ) where
+
+import Prelude
+
+import Data.Array ((..))
+import Data.Foldable (foldMap)
+
+string :: String
+string =
+  stringStart <> stringMiddle <> stringEnd
+
+stringStart :: String
+stringStart =
+  """(let
   ((midnight-plus-macros
     '(
-; ------------------------------------------------------------------------------
+"""
+
+stringMiddle :: String
+stringMiddle =
+  foldMap
+    (\n -> "(define foo" <> show n <> example)
+    (1 .. 1000)
+  where
+  example :: String
+  example =
+    """
+  'impl
+    (lambda (editor)
+      (let
+        ((cursor
+          (string-concat
+            (list
+              "cursor: "
+              (int->string (grid-posn-column (editor-cursor editor)))
+              ", "
+              (int->string (grid-posn-row (editor-cursor editor))))))
+
+          (line-count
+            (string-append
+              "lines: "
+              (int->string (editor-line-count editor)))))
+        (string-pad-center
+          80
+          cursor
+          line-count))))
+"""
+
+stringEnd :: String
+stringEnd =
+  """; ------------------------------------------------------------------------------
 ;
 ;      MIDNIGHT System
 ;
@@ -2882,3 +2931,4 @@
   )
 
 (eval midnight-let))
+"""

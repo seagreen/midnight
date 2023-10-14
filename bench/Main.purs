@@ -13,7 +13,7 @@ import Effect.Console as Console
 import Generated.EditorSource as EditorSource
 import Lib.Debug (crash)
 import Lib.Moore as Moore
-import MidnightBiwa as MidnightBiwa
+import MidnightJS as MidnightJS
 import MidnightLang.Sexp (Sexp)
 import MidnightLang.Sexp as Sexp
 import MidnightSystem as MidnightSystem
@@ -47,10 +47,10 @@ purescriptSum :: Unit -> Int
 purescriptSum _ =
   sum (1 .. sumNum)
 
--- | Via biwa
+-- | Via transpiled JS
 midnightSum :: Unit -> Int
 midnightSum _ =
-  case MidnightBiwa.evalToSexp midnightSumSrc of
+  case MidnightJS.evalToSexp midnightSumSrc of
     Left e ->
       crash e
 
@@ -110,10 +110,10 @@ purescriptSnoc :: Unit -> List Int
 purescriptSnoc _ =
   applyN (\xs -> List.snoc xs 1) snocNum List.Nil
 
--- | Via biwa
+-- | Via transpiled JS
 midnightSnoc :: Unit -> List Int
 midnightSnoc _ =
-  case MidnightBiwa.evalToSexp midnightSnocSrc of
+  case MidnightJS.evalToSexp midnightSnocSrc of
     Left e ->
       crash e
 

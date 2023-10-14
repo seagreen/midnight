@@ -90,8 +90,8 @@ toSexp keyInput =
     else
       Sexp.Symbol "no-ctrl-or-meta"
 
-toBiwa :: Keyboard -> String
-toBiwa keyInput =
+toMidnightQuoted :: Keyboard -> String
+toMidnightQuoted keyInput =
   Sexp.print
     ( Sexp.List
         ( Sexp.Symbol "quote"

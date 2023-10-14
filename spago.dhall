@@ -1,6 +1,7 @@
 { name = "halogen-project"
 , dependencies =
   [ "aff"
+  , "argonaut"
   , "arrays"
   , "bifunctors"
   , "console"
@@ -20,6 +21,9 @@
   , "maybe"
   , "minibench"
   , "newtype"
+  , "node-buffer"
+  , "node-child-process"
+  , "node-fs"
   , "ordered-collections"
   , "parsing"
   , "partial"

@@ -128,9 +128,16 @@ string =
             (crash e)
 
           ('ok sexp)
+            ; Previously:
+            ;
+            ; (let
+            ;   ((arg (list 'system-input-start-with-store store)))
+            ;   (eval (list sexp (list 'quote arg))))))))
+            ;
             (let
-              ((arg (list 'system-input-start-with-store store)))
-              (eval (list sexp (list 'quote arg))))))))
+              ((f (eval sexp))
+               (arg (list 'system-input-start-with-store store)))
+              (f arg))))))
 
 ; ------------------------------------------------------------------------------
 ; view
@@ -2478,9 +2485,11 @@ string =
   'impl
     (lambda (a)
       (let
-        ((_ (trace 'crash--------------------))
-         (_ (trace a))
-         (_ (trace '-------------------------)))
+        ; TODO: need to allow variables to repeat again?
+        ; lost during the JS compiler transition
+        ((_ (trace 'crash-------------------- '-))
+         (__ (trace a '-))
+         (___ (trace '------------------------- '-)))
         crash-now)))
 
 (define eq?
@@ -2557,9 +2566,10 @@ string =
   (crash
     (lambda (a)
       (let
-        ((_ (trace 'crash-plain-midnight-----))
-         (_ (trace a))
-         (_ (trace '-------------------------)))
+        ; TODO: need to allow variables to repeat again?
+        ((_ (trace 'crash-plain-midnight----- '-))
+         (__ (trace a '-))
+         (___ (trace '------------------------- '-)))
         crash-now)))
 
   (increment (lambda (n)
