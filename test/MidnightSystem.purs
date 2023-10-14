@@ -136,19 +136,7 @@ spec = do
           in
             outputs `shouldNotSatisfy` isJust
 
-    it "performance check - huge editor with extra code accepts some commands" do
-      -- Quick-and-dirty performance test.
-      --
-      -- EditorHuge has 2 extra copy/paste copies of the midnight-plus-macros quoted expansion.
-      -- it expands both of them, then proceeds normally with the original.
-      --
-      -- This tests the PureScript transpiler for a large file,
-      -- makes sure JS eval can handle it,
-      -- and tests the Midnight parser with a large file than normal
-      -- during the "restart" triggered by ctrl-ENTER below.
-      --
-      -- However, it doesn't actually test running of more code,
-      -- since the two extra midnight-plus-macros are just thrown away.
+    it "performance check - huge editor with with tons of definitions" do
       case MidnightSystem.moore EditorHuge.string of
         Left (StartupFailure e) ->
           fail e
@@ -173,25 +161,25 @@ spec = do
           in
             outputs `shouldNotSatisfy` isJust
 
-    {-
-    -- Disabled because it's slow.
-    --
-    -- NOTE: At 5000 it stack overflows.
-    it "lots-o-restarts" do
-      case MidnightSystem.moore EditorSource.string of
-        Left (StartupFailure e) ->
-          fail e
+{-
+-- Disabled because it's slow.
+--
+-- NOTE: At 5000 it stack overflows.
+it "lots-o-restarts" do
+  case MidnightSystem.moore EditorSource.string of
+    Left (StartupFailure e) ->
+      fail e
 
-        Right moore ->
-          let
-            listReplicate n x = List.fromFoldable (Data.Array.replicate n x)
+    Right moore ->
+      let
+        listReplicate n x = List.fromFoldable (Array.replicate n x)
 
-            outputs =
-              Moore.stepMultipleUnlessPred moore getCrash
-                (listReplicate 3000 { key: Keyboard.KeyChar 'a', ctrlOrMeta: true })
-          in
-            outputs `shouldNotSatisfy` isJust
-    -}
+        outputs =
+          Moore.stepMultipleUnlessPred moore getCrash
+            (listReplicate 3000 { key: Keyboard.KeyChar 'a', ctrlOrMeta: true })
+      in
+        outputs `shouldNotSatisfy` isJust
+-}
 
 getCrash :: Output -> Maybe String
 getCrash = case _ of
