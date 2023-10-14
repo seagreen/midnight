@@ -188,7 +188,8 @@ renderButtons currentMode =
     [ button Live
     , button Display
     , button Store
-    , button Ephem
+    -- TODO: re-enable
+    -- , button Ephem
     , button Source
     ]
   where
