@@ -59,7 +59,8 @@ const addBuiltinSnippet = jsExpr => {
   return builtinSnippet + "\n\n" + jsExpr;
 }
 
-const builtinSnippet = `
+const builtinSnippet = `"use strict";
+
 // Lispy
 const globalObject = typeof window !== 'undefined' ? window : global;
 
