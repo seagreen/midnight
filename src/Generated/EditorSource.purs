@@ -2332,17 +2332,6 @@ string =
         't
         (crash (list 'assert-eq a b)))))
 
-(define crash
-  'impl
-    (lambda (a)
-      (let
-        ; TODO: need to allow variables to repeat again?
-        ; lost during the JS compiler transition
-        ((_ (trace 'crash-------------------- '-))
-         (__ (trace a '-))
-         (___ (trace '------------------------- '-)))
-        crash-now)))
-
 (define eq?
   'examples
     (
@@ -2413,15 +2402,6 @@ string =
                 (eq? (cdr a) (cdr b))
                 'f)
               'f))))))
-
-  (crash
-    (lambda (a)
-      (let
-        ; TODO: need to allow variables to repeat again?
-        ((_ (trace 'crash-plain-midnight----- '-))
-         (__ (trace a '-))
-         (___ (trace '------------------------- '-)))
-        crash-now)))
 
   (increment (lambda (n)
     (+ n 1)))

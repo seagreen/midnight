@@ -163,7 +163,7 @@ const greaterThan = (x, y) => {
 
 // Debug
 
-const crash_now_midnight = a => {
+const crashMidnightHelper = a => {
   throw new Error(a);
 }
 
