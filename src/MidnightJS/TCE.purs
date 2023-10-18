@@ -6,6 +6,7 @@ import Data.List (List)
 import Data.List as List
 import Data.Tuple (Tuple(..))
 import Data.Tuple as Tuple
+import MidnightJS.AST (LamParams(..))
 import MidnightJS.Imp (Imp(..))
 
 {- Our goal:
@@ -78,9 +79,6 @@ tailCallElimation =
     Lam params body ->
       Lam params (tailCallElimation body)
 
-    LamVariadic param body ->
-      LamVariadic param (tailCallElimation body)
-
     Let bindingList body ->
       Let
         ( (\(Tuple name expr) -> Tuple name (tailCallCheck name expr))
@@ -126,34 +124,37 @@ tailCallElimation =
 tailCallCheck :: String -> Imp -> Imp
 tailCallCheck name expr =
   case expr of
-    Lam params body ->
-      -- TODO: also ensure doesn't appear in non-tail position
-      -- (same for below)
-      if inTailPosition name body && name /= "macroexpand_midnight" then
-        let
-          tce_metavar_name = "$tce"
-        in
-          TceFunction
-            tce_metavar_name
-            params
-            ( Lam params
-                -- TODO: continue TCE'ing again below into the body?
-                ( tceReturns
-                    name
-                    tce_metavar_name
-                    params
-                    body
+    Lam lamParams body ->
+      case lamParams of
+        LamParamsFixed params ->
+          -- TODO: also ensure doesn't appear in non-tail position
+          -- (same for below)
+          if inTailPosition name body && name /= "macroexpand_midnight" then
+            let
+              tce_metavar_name = "$tce"
+            in
+              TceFunction
+                tce_metavar_name
+                params
+                ( Lam (LamParamsFixed params)
+                    -- TODO: continue TCE'ing again below into the body?
+                    ( tceReturns
+                        name
+                        tce_metavar_name
+                        params
+                        body
+                    )
                 )
-            )
-      else
-        Lam params (tailCallElimation body)
 
-    LamVariadic param body ->
-      if inTailPosition name body then
-        -- TODO: implement here too:
-        LamVariadic param (tailCallElimation body)
-      else
-        LamVariadic param (tailCallElimation body)
+          else
+            Lam lamParams (tailCallElimation body)
+
+        LamParamsVariadic param ->
+          if inTailPosition name body then
+            -- TODO: implement here too:
+            Lam (LamParamsVariadic param) (tailCallElimation body)
+          else
+            Lam (LamParamsVariadic param) (tailCallElimation body)
 
     _ ->
       tailCallElimation expr
@@ -165,9 +166,6 @@ tceReturns name tce_metavar_name params expr =
       baseCase
 
     Lam _ _ ->
-      baseCase
-
-    LamVariadic _ _ ->
       baseCase
 
     Let bindingList body ->
@@ -228,17 +226,19 @@ inTailPosition name =
     Var id ->
       id == name
 
-    Lam params body ->
-      if List.elem name params then
-        false
-      else
-        inTailPosition name body
+    Lam lamParams body ->
+      case lamParams of
+        LamParamsFixed params ->
+          if List.elem name params then
+            false
+          else
+            inTailPosition name body
 
-    LamVariadic param body ->
-      if name == param then
-        false
-      else
-        inTailPosition name body
+        LamParamsVariadic param ->
+          if name == param then
+            false
+          else
+            inTailPosition name body
 
     Let bindingList body ->
       if List.elem name (Tuple.fst <$> bindingList) then false

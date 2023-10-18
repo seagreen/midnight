@@ -14,13 +14,10 @@ module MidnightJS
 import Prelude
 
 import Control.Monad.Writer (Writer, execWriter, tell)
-import Data.Argonaut (Json)
-import Data.Argonaut (stringify)
+import Data.Argonaut (Json, stringify)
 import Data.Array as Array
 import Data.Bifunctor (lmap)
 import Data.Either (Either(..))
-import Data.List (List)
-import Data.List as List
 import Foreign (Foreign)
 import Lib.Debug (crash)
 import MidnightJS.AST as AST

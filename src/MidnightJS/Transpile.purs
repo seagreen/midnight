@@ -16,6 +16,7 @@ import Data.String.CodePoints (CodePoint, codePointFromChar)
 import Data.Traversable (for)
 import Data.Tuple (Tuple(..))
 import Lib.Debug (crash)
+import MidnightJS.AST (LamParams(..))
 import MidnightJS.Imp (Imp(..))
 import MidnightJS.Translate as Translate
 import MidnightLang.Sexp (PsList, Sexp)
@@ -108,13 +109,13 @@ transpileLambda =
       case params of
         Sexp.Symbol sym ->
           -- NOTE: note the translateSymbols
-          LamVariadic (translateSymbol sym) (transpile body)
+          Lam (LamParamsVariadic (translateSymbol sym)) (transpile body)
 
         Sexp.List xs ->
           toStringParams
             xs
             ( \stringParams ->
-                Lam (translateSymbol <$> stringParams) (transpile body)
+                Lam (LamParamsFixed (translateSymbol <$> stringParams)) (transpile body)
             )
 
         Sexp.Int n ->

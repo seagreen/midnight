@@ -1,6 +1,5 @@
 module MidnightJS.Imp where
 
-import Lib.Debug
 import Prelude
 
 import Data.Generic.Rep (class Generic)
@@ -9,7 +8,7 @@ import Data.List as List
 import Data.Maybe (Maybe(..))
 import Data.Show.Generic (genericShow)
 import Data.Tuple (Tuple(..))
-import MidnightJS.AST (AST)
+import MidnightJS.AST (AST, LamParams(..))
 import MidnightJS.AST as AST
 
 type Id = String
@@ -17,8 +16,7 @@ type Id = String
 -- | See the PureScript compiler for a good example of this type of thing.
 data Imp
   = Var Id
-  | Lam (List String) Imp
-  | LamVariadic String Imp
+  | Lam LamParams Imp
   | Let (List (Tuple String Imp)) Imp
   | App Imp (List Imp)
   | If Imp Imp Imp
@@ -47,9 +45,6 @@ toAST =
 
     Lam params body ->
       AST.Lam params (toAST body)
-
-    LamVariadic param body ->
-      AST.LamVariadic param (toAST body)
 
     Let bindingList body ->
       AST.Let
@@ -82,7 +77,7 @@ toAST =
           (\param -> tce_metavar_name <> "_" <> param)
             <$> params
       in
-        AST.Lam tceParams
+        AST.Lam (LamParamsFixed tceParams)
           ( AST.Block
               ( AST.JsLet (tce_metavar_name <> "_done") (Just (AST.JsBool false))
                   : AST.JsLet (tce_metavar_name <> "_result") Nothing

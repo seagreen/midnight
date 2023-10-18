@@ -1,6 +1,5 @@
 module MidnightJS.AST where
 
-import Debug
 import Prelude
 
 import Data.Generic.Rep (class Generic)
@@ -8,15 +7,13 @@ import Data.List (List, (:))
 import Data.List as List
 import Data.Maybe (Maybe(..))
 import Data.Show.Generic (genericShow)
-import Data.String as String
 import Data.Tuple (Tuple(..))
 
 type Id = String
 
 data AST
   = Var Id
-  | Lam (List String) AST
-  | LamVariadic String AST
+  | Lam LamParams AST
   | Let (List (Tuple String AST)) AST
   | App AST (List AST)
   | If AST AST AST
@@ -49,31 +46,48 @@ derive instance Generic AST _
 instance Show AST where
   show a = genericShow a
 
+-- | We want a single `Lam` constructor in `Imp`
+-- to ensure TCE happens the same for both kinds of lambda.
+--
+-- TODO: actually do this
+data LamParams
+  = LamParamsFixed (List String)
+  | LamParamsVariadic String
+
+derive instance Eq LamParams
+derive instance Generic LamParams _
+instance Show LamParams where
+  show a = genericShow a
+
 serialize :: AST -> String
 serialize =
   case _ of
     Var id ->
       id
 
-    Lam params body ->
-      "(("
-        <> List.intercalate ", " params
-        <> ") => "
-        <> serialize body
-        <> ")"
+    Lam lamParams body ->
+      case lamParams of
+        LamParamsFixed params ->
+          "(("
+            <> List.intercalate ", " params
+            <> ") => "
+            <> serialize body
+            <> ")"
 
-    LamVariadic param body ->
-      "((..."
-        <> param
-        <> "$$" -- TODO
-        <> ") => {const "
-        <> param
-        <> " = arrayToLinkedList("
-        <> param
-        <> "$$); "
-        <> "return "
-        <> serialize body
-        <> ";})"
+        LamParamsVariadic param ->
+          let
+            paramTemp = param <> "$$" -- TODO
+          in
+            "((..."
+              <> paramTemp
+              <> ") => {const "
+              <> param
+              <> " = arrayToLinkedList("
+              <> paramTemp
+              <> "); "
+              <> "return "
+              <> serialize body
+              <> ";})"
 
     LamUnitImmediateInvoked body ->
       "(() => " <> serialize body <> ")()"
