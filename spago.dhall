@@ -36,6 +36,7 @@
   , "slug"
   , "spec"
   , "strings"
+  , "tailrec"
   , "transformers"
   , "tuples"
   , "unsafe-coerce"
