@@ -30,7 +30,6 @@ jsToOutput outputForeign = do
   verifyConstructor outputForeign
 
   store <- getSecond outputForeign
-
   displayForeign <-
     lmap
       (\err -> "displayFromStore: " <> err)
@@ -38,13 +37,10 @@ jsToOutput outputForeign = do
 
   displaySexp <- lmap (\err -> "foreign to display sexp: " <> err) (foreignToSexp displayForeign)
   display <- lmap (\err -> "parse display sexp: " <> err) (Display.parse displaySexp)
-  ephem <- getThird outputForeign
-  pure (StepNormal { displaySexp, display, store, ephem })
 
-{-
-    other ->
-      Left ("Parse step output: output constructor not recognized: " <> Sexp.print other)
--}
+  ephem <- getThird outputForeign
+
+  pure (StepNormal { displaySexp, display, store, ephem })
 
 foreignToSexp :: Foreign -> Either String Sexp
 foreignToSexp jsVal = do
@@ -63,8 +59,9 @@ verifyConstructor :: Foreign -> Either String Unit
 verifyConstructor output =
   void (applyStringToForeign src output)
   where
-    src :: String
-    src = """
+  src :: String
+  src =
+    """
 (let
   (
 
