@@ -4,7 +4,6 @@ import Prelude
 
 import Control.Monad.Except.Trans (ExceptT, except, runExceptT)
 import Control.Monad.Rec.Class (Step(..), tailRecM)
-import Control.Monad.Trampoline (Trampoline, delay, done, runTrampoline)
 import Data.Argonaut (Json, caseJson, stringify)
 import Data.Either (Either(..))
 import Data.Int (fromNumber)
@@ -88,38 +87,28 @@ jsonToMidnightSexpNoFlatten =
           ContIdentity ->
             pure (Done sexp)
 
--- | flattenSexpLists uses a trampoline
---
--- NOTE: It could use tailRecM, I should switch to that when I have a chance.
-
 flattenSexpLists :: Sexp -> Either String Sexp
 flattenSexpLists sexp =
-  runTrampoline (runExceptT (flattenSexpListsGo sexp))
-
-flattenSexpListsGo :: Sexp -> ExceptT String Trampoline Sexp
-flattenSexpListsGo sexp =
   case sexp of
-    Sexp.List _ ->
-      Sexp.List <$> flattenListGo sexp
+    Sexp.List _ -> do
+      ys <- flattenSingleList sexp
+      Sexp.List <$> for ys flattenSexpLists
 
     _ ->
       pure sexp
 
-flattenListGo :: Sexp -> ExceptT String Trampoline (List Sexp)
-flattenListGo xs =
-  case xs of
+flattenSingleList :: Sexp -> Either String (List Sexp)
+flattenSingleList sexp =
+  case sexp of
     Sexp.List List.Nil ->
       pure List.Nil
 
     Sexp.List (car : cdr : List.Nil) -> do
-      next <- flattenSexpListsGo car
-      rest <- flattenListGo cdr
-      pure (List.Cons next rest)
+      rest <- flattenSingleList cdr
+      pure (List.Cons car rest)
 
     _ ->
-      except
-        ( Left
-            ( "flattenList expected a pair, but got: "
-                <> show xs
-            )
+      Left
+        ( "flattenList expected a pair, but got: "
+            <> show sexp
         )
