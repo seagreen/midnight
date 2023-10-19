@@ -20,8 +20,12 @@ jsonToMidnightSexp json = do
   midnightSexp <- jsonToMidnightSexpNoFlatten json
   runTrampoline (runExceptT (flattenSexpListsGo midnightSexp))
 
--- | See Taming the stack by Nathan Faubion
+-- | jsonToMidnightSexpNoFlatten uses tailRecM
 --
+-- See PureScript: Jordan's Reference
+-- https://jordanmartinez.github.io/purescript-jordans-reference-site/content/31-Design-Patterns/23-Stack-Safety/01-Explicit-TCO.html
+--
+-- and Taming the stack by Nathan Faubion:
 -- https://hasgeek.com/FP_Juspay/pureconf/schedule/taming-the-stack-5RMhApk2iAEoEaRr844z14
 --
 data ParseCall
@@ -83,6 +87,10 @@ jsonToMidnightSexpNoFlatten =
 
           ContIdentity ->
             pure (Done sexp)
+
+-- | flattenSexpLists uses a trampoline
+--
+-- NOTE: It could use tailRecM, I should switch to that when I have a chance.
 
 flattenSexpLists :: Sexp -> Either String Sexp
 flattenSexpLists sexp =
