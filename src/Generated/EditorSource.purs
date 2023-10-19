@@ -82,7 +82,7 @@ string =
          (display (view starting-editor))
          (step-sexp (parse-or-crash src)))
         (list
-          'output-normal
+          'output-store-and-ephem
           (store-remove-tags
             (store-new
               display
@@ -111,7 +111,7 @@ string =
                         (lambda (editor) (update k editor))
                         store)))
           (list
-            'output-normal
+            'output-store-and-ephem
             (store-remove-tags (store-update-display new-store))
             ephem)))))
 
@@ -124,7 +124,7 @@ string =
   'impl
     (lambda (store)
       (list
-        'output-normal
+        'output-store-and-ephem
         (store-remove-tags (store-update-display store))
         (dict-singleton 'step step-single)))) ; as ephem
 

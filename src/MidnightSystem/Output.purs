@@ -26,15 +26,10 @@ import MidnightSystem.Display as Display
 data StepOutput = StepNormal { displaySexp :: Sexp, display :: Display, store :: Foreign, ephem :: Foreign }
 
 jsToOutput :: Foreign -> Either String StepOutput
-jsToOutput val = do
-  {-
-  outputConstructorForeign <- getFirst val
-  outputConstructorSexp <- foreignToSexp outputConstructorForeign
-  case outputConstructorSexp of
-    Sexp.Symbol "output-normal" -> do
+jsToOutput outputForeign = do
+  verifyConstructor outputForeign
 
--}
-  store <- getSecond val
+  store <- getSecond outputForeign
 
   displayForeign <-
     lmap
@@ -43,7 +38,7 @@ jsToOutput val = do
 
   displaySexp <- lmap (\err -> "foreign to display sexp: " <> err) (foreignToSexp displayForeign)
   display <- lmap (\err -> "parse display sexp: " <> err) (Display.parse displaySexp)
-  ephem <- getThird val
+  ephem <- getThird outputForeign
   pure (StepNormal { displaySexp, display, store, ephem })
 
 {-
@@ -63,6 +58,30 @@ foreignToSexpAllowClosures jsVal = do
 -- crash "here"
 
 -- Translate.biwaSexpToMidnightSexp biwaSexp
+
+verifyConstructor :: Foreign -> Either String Unit
+verifyConstructor output =
+  void (applyStringToForeign src output)
+  where
+    src :: String
+    src = """
+(let
+  (
+
+(list
+  (lambda xs
+    xs))
+
+)
+
+(lambda (output)
+  (if
+    (symbol-eq? 'output-store-and-ephem (car output))
+      '()
+      (crash (list 'verify-constructor 'expected-output-store-and-ephem 'but-got (car output)))))
+
+)
+"""
 
 displayFromStore :: String
 displayFromStore =
