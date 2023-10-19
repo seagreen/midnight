@@ -18,7 +18,7 @@ import MidnightLang.Sexp as Sexp
 jsonToMidnightSexp :: Json -> Either String Sexp
 jsonToMidnightSexp json = do
   midnightSexp <- jsonToMidnightSexpNoFlatten json
-  runTrampoline (runExceptT (flattenSexpListsGo midnightSexp))
+  flattenSexpLists midnightSexp
 
 -- | jsonToMidnightSexpNoFlatten uses tailRecM
 --
