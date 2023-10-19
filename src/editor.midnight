@@ -52,9 +52,10 @@
         ('system-input-start-with-editor-contents src)
           (startup src)
 
-        ('system-input-keypress store ephem k)
-          (step-from-ephem store ephem k)
+        ('system-input-keypress untagged-store ephem k)
+          (step-from-ephem (untagged-store->store untagged-store) ephem k)
 
+        ; NOTE: tagged store
         ('system-input-start-with-store store)
           (start-with-store store))))
 
@@ -62,25 +63,41 @@
   'impl
     (lambda (src)
       (let
-        ((starting-store (string->editor src)))
+        ((starting-editor (string->editor src))
+         (display (view starting-editor))
+         (step-sexp (parse-or-crash src)))
         (list
           'output-normal
-          (view starting-store)
-          starting-store
-          (dict-singleton 'step step))))) ; ephem
+          (store-remove-tags
+            (store-new
+              display
+              step-sexp
+              starting-editor))
+          (dict-singleton 'step step-single))))) ; ephem
 
-(define step
+(define parse-or-crash
+  'impl
+    (lambda (src)
+      (case (sexp-parse src)
+        ('error e)
+          (crash e)
+
+        ('ok sexp)
+          sexp)))
+
+(define step-single
   'impl
     (lambda (store ephem k)
       (if
         (restart-key? k)
         (restart store ephem k)
         (let
-          ((new-store (update k store)))
+          ((new-store (store-modify-editor
+                        (lambda (editor) (update k editor))
+                        store)))
           (list
             'output-normal
-            (view new-store)
-            new-store
+            (store-remove-tags (store-update-display new-store))
             ephem)))))
 
 (define step-from-ephem
@@ -93,9 +110,8 @@
     (lambda (store)
       (list
         'output-normal
-        (view store)
-        store
-        (dict-singleton 'step step)))) ; as ephem
+        (store-remove-tags (store-update-display store))
+        (dict-singleton 'step step-single)))) ; as ephem
 
 (define restart-key?
   'impl
@@ -107,7 +123,7 @@
   'impl
     (lambda (store ephem k)
       (let
-        ((src (text->string (editor-text store))))
+        ((src (text->string (editor-text (store-editor store)))))
         (case (trace-bench 'parse (lambda (_) (sexp-parse src)))
           ('error e)
             (crash e)
@@ -125,7 +141,99 @@
               (f arg))))))
 
 ; ------------------------------------------------------------------------------
-; view
+; store helpers
+
+(define store-update-display
+  'impl
+    (lambda (store)
+      (store-set-display
+        (view (store-editor store))
+        store)))
+
+(define untagged-store->store
+  'impl
+    (lambda (untagged-store)
+      (type-tag-add store-tag (type-tag-add dict-tag untagged-store))))
+
+(define store-remove-tags
+  'impl
+    (lambda (store)
+      (type-tag-get dict-tag (type-tag-get store-tag store))))
+
+; ------------------------------------------------------------------------------
+; store
+;
+; (struct store (display step editor))
+;
+; Note that this is stored with the store and alist tags stripped off,
+; the outer system expects a bare alist.
+
+(define store-new
+  'impl
+    (lambda (display step editor)
+      (type-tag-add
+        store-tag
+        (dict-insert 'display display
+          (dict-insert 'step step
+            (dict-singleton 'editor editor))))))
+
+(define store-display
+  'impl
+    (lambda (store)
+      (dict-lookup-or-crash 'display (type-tag-get store-tag store))))
+
+(define store-step
+  'impl
+    (lambda (store)
+      (dict-lookup-or-crash 'step (type-tag-get store-tag store))))
+
+(define store-editor
+  'impl
+    (lambda (store)
+      (dict-lookup-or-crash 'editor (type-tag-get store-tag store))))
+
+(define store-set-display
+  'impl
+    (lambda (display store)
+      (store-modify-display (lambda (_) display) store)))
+
+(define store-set-step
+  'impl
+    (lambda (step store)
+      (store-modify-step (lambda (_) step) store)))
+
+(define store-set-editor
+  'impl
+    (lambda (editor store)
+      (store-modify-editor (lambda (_) editor) store)))
+
+(define store-modify-display
+  'impl
+    (lambda (f store)
+      (type-tag-add
+        store-tag
+        (dict-update 'display f (type-tag-get store-tag store)))))
+
+(define store-modify-step
+  'impl
+    (lambda (f store)
+      (type-tag-add
+        store-tag
+        (dict-update 'step f (type-tag-get store-tag store)))))
+
+(define store-modify-editor
+  'impl
+    (lambda (f store)
+      (type-tag-add
+        store-tag
+        (dict-update 'editor f (type-tag-get store-tag store)))))
+
+(define store-tag
+  'impl
+    'store-tag)
+
+; ------------------------------------------------------------------------------
+; editor view
 
 (define display-size-rows
   'impl
@@ -161,7 +269,7 @@
         "")))
 
 ; ------------------------------------------------------------------------------
-; update
+; editor update
 
 (define update
   'impl

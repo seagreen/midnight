@@ -1,8 +1,8 @@
 module MidnightSystem.Output where
 
+import Debug
 import Lib.Debug
 import Prelude
-import Debug
 
 import Data.Bifunctor (lmap)
 import Data.Either (Either(..))
@@ -15,11 +15,11 @@ import Foreign (Foreign, unsafeFromForeign)
 import Lib.Sexp as GenericSexp
 import MidnightJS as MidnightJS
 import MidnightJS.Foreign as Foreign
+import MidnightJS.JsonToMidnightSexp (jsonToMidnightSexp)
 import MidnightJS.JsonToMidnightSexp as JsonToMidnightSexp
 import MidnightJS.Translate as Translate
 import MidnightLang.Sexp (Sexp)
 import MidnightLang.Sexp as Sexp
-import MidnightJS.JsonToMidnightSexp (jsonToMidnightSexp)
 import MidnightSystem.Display (Display)
 import MidnightSystem.Display as Display
 
@@ -34,11 +34,16 @@ jsToOutput val = do
     Sexp.Symbol "output-normal" -> do
 
 -}
-  displayForeign <- getSecond val
+  store <- getSecond val
+
+  displayForeign <-
+    lmap
+      (\err -> "displayFromStore: " <> err)
+      (applyStringToForeign displayFromStore store)
+
   displaySexp <- lmap (\err -> "foreign to display sexp: " <> err) (foreignToSexp displayForeign)
   display <- lmap (\err -> "parse display sexp: " <> err) (Display.parse displaySexp)
-  store <- getThird val
-  ephem <- getFourth val
+  ephem <- getThird val
   pure (StepNormal { displaySexp, display, store, ephem })
 
 {-
@@ -59,6 +64,34 @@ foreignToSexpAllowClosures jsVal = do
 
 -- Translate.biwaSexpToMidnightSexp biwaSexp
 
+displayFromStore :: String
+displayFromStore =
+  """
+(let
+  (
+
+(list
+  (lambda xs
+    xs))
+
+(untagged-alist-get-symbol
+  (lambda (sym xs)
+    (if
+      (list-empty? xs)
+      (crash (list 'untagged-alist-get-symbol 'not-found sym))
+      (if
+        (symbol-eq? sym (car (car xs)))
+        (car (cdr (car xs)))
+        (untagged-alist-get-symbol sym (cdr xs))))))
+
+)
+
+(lambda (store)
+  (untagged-alist-get-symbol 'display store))
+
+)
+"""
+
 getFirst :: Foreign -> Either String Foreign
 getFirst val =
   lmap
@@ -76,12 +109,6 @@ getThird jsVal =
   lmap
     (\err -> "getThird: " <> err)
     (applyStringToForeign "(lambda (x) (car (cdr (cdr x))))" jsVal)
-
-getFourth :: Foreign -> Either String Foreign
-getFourth jsVal =
-  lmap
-    (\err -> "getFourth: " <> err)
-    (applyStringToForeign "(lambda (x) (car (cdr (cdr (cdr x)))))" jsVal)
 
 applyStringToForeign :: String -> Foreign -> Either String Foreign
 applyStringToForeign str jsVal = do

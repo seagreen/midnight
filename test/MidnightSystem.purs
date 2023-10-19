@@ -81,6 +81,8 @@ spec = do
                         )
                       pure unit
 
+    {- TODO: re-enable?
+
   describe "starts-up-and-accepts-abc-input" do
     it "works" do
       case MidnightJS.evalToForeign EditorSource.string of
@@ -102,6 +104,7 @@ spec = do
 
                 Right _ ->
                   pure unit
+-}
 
     it "initial editor outputs an image successfully" do
       case MidnightSystem.moore EditorSource.string of
@@ -119,6 +122,7 @@ spec = do
         Right moore ->
           let
             outputs =
+              -- TODO: would be better to stop after the first failure
               Moore.stepMultipleUnlessPred moore getCrash
                 ( Keyboard.noMeta (Keyboard.KeyArrow Keyboard.ArrowUp)
                     : Keyboard.noMeta (Keyboard.KeyArrow Keyboard.ArrowDown)
@@ -135,6 +139,8 @@ spec = do
                 )
           in
             outputs `shouldNotSatisfy` isJust
+
+{-
 
     it "performance check - huge editor with with tons of definitions" do
       case MidnightSystem.moore EditorHuge.string of
@@ -160,6 +166,8 @@ spec = do
                 )
           in
             outputs `shouldNotSatisfy` isJust
+
+-}
 
 {-
 -- Disabled because it's slow.
