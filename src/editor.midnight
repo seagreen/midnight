@@ -55,6 +55,9 @@
         ('system-input-keypress untagged-store ephem k)
           (step-from-ephem (untagged-store->store untagged-store) ephem k)
 
+        ('store-to-ephem untagged-store)
+          (dict-singleton 'step step-single); ephem
+
         ; NOTE: tagged store
         ('system-input-start-with-store store)
           (start-with-store store))))

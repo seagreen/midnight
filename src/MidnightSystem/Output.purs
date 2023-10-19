@@ -1,7 +1,5 @@
 module MidnightSystem.Output where
 
-import Debug
-import Lib.Debug
 import Prelude
 
 import Data.Bifunctor (lmap)
@@ -22,6 +20,20 @@ import MidnightLang.Sexp (Sexp)
 import MidnightLang.Sexp as Sexp
 import MidnightSystem.Display (Display)
 import MidnightSystem.Display as Display
+
+data Output
+  = OutputCrash String
+  | OutputSuccess { displaySexp :: Sexp, display :: Display, store :: Foreign, ephem :: Foreign }
+
+instance Show Output where
+  -- | For tests
+  show :: Output -> String
+  show = case _ of
+    OutputCrash err ->
+      "OutputCrash: " <> err
+
+    OutputSuccess _ ->
+      "<OutputSuccess>"
 
 data StepOutput = StepNormal { displaySexp :: Sexp, display :: Display, store :: Foreign, ephem :: Foreign }
 

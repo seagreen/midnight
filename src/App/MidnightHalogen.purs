@@ -12,9 +12,10 @@ import Effect.Aff.Class (class MonadAff)
 import Halogen as H
 import Halogen.HTML as HH
 import Lib.Moore (Moore)
-import MidnightSystem (Output, StartupFailure(..))
+import MidnightSystem (StartupFailure(..))
 import MidnightSystem as MidnightSystem
 import MidnightSystem.Keyboard (Keyboard)
+import MidnightSystem.Output (Output)
 import Type.Proxy (Proxy(..))
 
 data State

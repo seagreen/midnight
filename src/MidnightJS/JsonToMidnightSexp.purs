@@ -2,6 +2,8 @@ module MidnightJS.JsonToMidnightSexp where
 
 import Prelude
 
+import Control.Monad.Except.Trans (ExceptT, except, runExceptT)
+import Control.Monad.Trampoline (Trampoline, delay, done, runTrampoline)
 import Data.Argonaut (Json, caseJson, stringify)
 import Data.Either (Either(..))
 import Data.Int (fromNumber)
@@ -14,53 +16,75 @@ import MidnightLang.Sexp as Sexp
 
 jsonToMidnightSexp :: Json -> Either String Sexp
 jsonToMidnightSexp json = do
-  flattenSexpLists =<< jsonToMidnightSexpNoFlatten json
+  runTrampoline (runExceptT (flattenSexpListsGo =<< (jsonToMidnightSexpNoFlattenGo json)))
 
 jsonToMidnightSexpNoFlatten :: Json -> Either String Sexp
 jsonToMidnightSexpNoFlatten json =
-  caseJson
-    ( \_ ->
-        Left "unexpected null"
-    )
-    ( \b ->
-        Left ("unexpected bool: " <> show b)
-    )
-    ( \n ->
-        case fromNumber n of
-          Nothing -> Left ("not an integer: " <> show n)
-          Just int -> Right (Sexp.Int int)
-    )
-    (Right <<< Sexp.Symbol)
-    ( \xs ->
-        Sexp.List <<< List.fromFoldable <$> for xs jsonToMidnightSexpNoFlatten
-    )
-    ( \_ ->
-        Left ("unexpected object: " <> stringify json)
-    )
-    json
+  runTrampoline (runExceptT (jsonToMidnightSexpNoFlattenGo json))
 
 flattenSexpLists :: Sexp -> Either String Sexp
 flattenSexpLists sexp =
+  runTrampoline (runExceptT (flattenSexpListsGo sexp))
+
+-- * Trampolined versions
+
+jsonToMidnightSexpNoFlattenGo :: Json -> ExceptT String Trampoline Sexp
+jsonToMidnightSexpNoFlattenGo json =
+  caseJson
+    ( \_ ->
+        except (Left "unexpected null")
+    )
+    ( \b ->
+        except (Left ("unexpected bool: " <> show b))
+    )
+    ( \n -> case fromNumber n of
+        Nothing ->
+          except (Left ("not an integer: " <> show n))
+        Just int ->
+          pure (Sexp.Int int)
+    )
+    (pure <<< Sexp.Symbol)
+    ( \xs ->
+        case List.fromFoldable xs of
+          List.Nil ->
+            pure (Sexp.List List.Nil)
+
+          x : rest : List.Nil -> do
+            xSexp <- jsonToMidnightSexpNoFlattenGo x
+            restSexp <- jsonToMidnightSexpNoFlattenGo rest
+            pure (Sexp.List (xSexp : restSexp : List.Nil))
+
+          _ ->
+            except (Left ("Not a zero or two element list: " <> stringify json)))
+    ( \_ ->
+        except (Left ("unexpected object: " <> stringify json))
+    )
+    json
+
+flattenSexpListsGo :: Sexp -> ExceptT String Trampoline Sexp
+flattenSexpListsGo sexp =
   case sexp of
     Sexp.List _ ->
-      Sexp.List <$> flattenList sexp
+      Sexp.List <$> flattenListGo sexp
 
     _ ->
       pure sexp
 
-flattenList :: Sexp -> Either String (List Sexp)
-flattenList xs =
+flattenListGo :: Sexp -> ExceptT String Trampoline (List Sexp)
+flattenListGo xs =
   case xs of
     Sexp.List List.Nil ->
       pure List.Nil
 
     Sexp.List (car : cdr : List.Nil) -> do
-      next <- flattenSexpLists car
-      rest <- flattenList cdr
+      next <- flattenSexpListsGo car
+      rest <- flattenListGo cdr
       pure (List.Cons next rest)
 
     _ ->
-      Left
-        ( "flattenList expected a pair, but got: "
-            <> show xs
+      except
+        ( Left
+            ( "flattenList expected a pair, but got: "
+                <> show xs
+            )
         )

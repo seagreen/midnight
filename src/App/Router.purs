@@ -11,7 +11,6 @@ import App.UiComponent.InternalLink as InternalLink
 import Data.Maybe (Maybe(..))
 import Effect.Aff.Class (class MonadAff)
 import Generated.EditorSource as EditorSource
-import Generated.HelloWorldSource as HelloWorldSource
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Core (HTML)

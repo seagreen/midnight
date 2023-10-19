@@ -19,11 +19,13 @@ import Halogen.HTML.Properties as HP
 import Halogen.Query.Event (eventListener)
 import Lib.Moore (Moore(..))
 import MidnightLang.Sexp as Sexp
-import MidnightSystem (Output(..), StartupFailure(..))
+import MidnightSystem (StartupFailure(..))
 import MidnightSystem as MidnightSystem
 import MidnightSystem.Display (Display)
 import MidnightSystem.Keyboard (Keyboard)
+import MidnightSystem.Output (Output(..))
 import MidnightSystem.Output as Output
+import MidnightSystem.StoreToMoore (storeToMoore)
 import Web.Event.Event as E
 import Web.HTML as Web.Html
 import Web.HTML.HTMLDocument as HtmlDocument
@@ -46,9 +48,8 @@ instance Show Mode where
 
 type State =
   { mode :: Mode
-  -- TODO: currentlyRunning is a lie, this can be changed
-  -- in the textarea:
-  , currentlyRunning :: String
+  , storeTabText :: Maybe String
+  , sourceTabText :: String
   , moore :: Moore Keyboard Output
   , lastError :: Maybe String
   }
@@ -57,6 +58,7 @@ data Action
   = Init
   | SwitchMode Mode
   | HandleKey H.SubscriptionId KeyboardEvent
+  | SetStore String
   | SetSource String
 
 -- Key subscription strategy from here:
@@ -72,7 +74,8 @@ component startingCode startingMoore =
   H.mkComponent
     { initialState: \_ ->
         { mode: Live
-        , currentlyRunning: startingCode
+        , storeTabText: Nothing
+        , sourceTabText: startingCode
         , moore: startingMoore
         , lastError: Nothing
         }
@@ -94,6 +97,7 @@ component startingCode startingMoore =
           (map (HandleKey sid) <<< KE.fromEvent)
 
     SwitchMode mode -> do
+      H.modify_ (\s -> s { storeTabText = Nothing })
       H.modify_ (\s -> s { mode = mode })
 
     HandleKey sid ev -> do
@@ -108,14 +112,20 @@ component startingCode startingMoore =
               preventDefault ev
               stepKey key
 
+        Store ->
+          when (isRelaunchRequested ev) relaunchFromStore
+
         Source ->
           when (isRelaunchRequested ev) relaunchFromSource
 
         _ ->
           pure unit
 
+    SetStore str -> do
+      H.modify_ (\s -> s { storeTabText = Just str })
+
     SetSource str -> do
-      H.modify_ (\s -> s { currentlyRunning = str })
+      H.modify_ (\s -> s { sourceTabText = str })
 
     where
     stepKey :: Keyboard -> H.HalogenM State Action slots o m Unit
@@ -133,9 +143,24 @@ component startingCode startingMoore =
     preventDefault ev =
       H.liftEffect $ E.preventDefault (KE.toEvent ev)
 
+    relaunchFromStore :: H.HalogenM State Action slots o m Unit
+    relaunchFromStore = do
+      mStr <- H.gets _.storeTabText
+      case mStr of
+        Nothing ->
+          pure unit
+
+        Just str ->
+          case storeToMoore str of
+            Left e ->
+              H.modify_ (\s -> s { lastError = Just e })
+
+            Right moore ->
+              H.modify_ (\s -> s { mode = Live, moore = moore })
+
     relaunchFromSource :: H.HalogenM State Action slots o m Unit
     relaunchFromSource = do
-      str <- H.gets _.currentlyRunning
+      str <- H.gets _.sourceTabText
       case MidnightSystem.moore str of
         Left (StartupFailure e) ->
           H.modify_ (\s -> s { lastError = Just e })
@@ -144,7 +169,7 @@ component startingCode startingMoore =
           H.modify_ (\s -> s { mode = Live, moore = moore })
 
   render :: forall slots. State -> H.ComponentHTML Action slots m
-  render { mode, currentlyRunning, moore, lastError } =
+  render { mode, sourceTabText, moore, lastError } =
     HH.div_
       [ renderAbout
       , renderButtons mode
@@ -163,7 +188,7 @@ component startingCode startingMoore =
             renderEphem (unwrap moore).output
 
           Source ->
-            renderSource currentlyRunning
+            renderSource sourceTabText
       ]
 
 renderAbout :: forall slots m. H.ComponentHTML Action slots m
@@ -248,20 +273,29 @@ renderDisplay = case _ of
 
 renderStore :: forall slots m. Output -> H.ComponentHTML Action slots m
 renderStore output =
-  HH.div
-    [ HP.class_ (H.ClassName "mt-5") ]
-    [ case output of
-        OutputCrash err ->
-          HH.p_ [ HH.text err ]
+  case output of
+    OutputCrash err ->
+      HH.p_ [ HH.text err ]
 
-        OutputSuccess { store } ->
-          case Output.foreignToSexp store of
-            Left e ->
-              HH.p_ [ HH.text ("Couldn't process store: " <> e) ]
+    OutputSuccess { store } ->
+      case Output.foreignToSexp store of
+        Left e ->
+          HH.p_ [ HH.text ("Couldn't process store: " <> e) ]
 
-            Right sexp ->
-              codeBlock (Sexp.prettyprintColsPrefer80 sexp)
-    ]
+        Right sexp ->
+          let
+            storeStr = Sexp.prettyprintColsPrefer80 sexp
+          in
+            HH.div
+              [ HP.class_ (H.ClassName "mt-5") ]
+              [ HH.p_
+                  [ HH.text "Ctrl-<enter> to relaunch." ]
+              , HH.textarea
+                  [ HP.value storeStr
+                  , HP.class_ (H.ClassName "font-mono overflow-x-auto whitespace-pre min-w-[700px] h-screen p-4 bg-gray-50")
+                  , HE.onValueInput SetStore
+                  ]
+              ]
 
 renderEphem :: forall slots m. Output -> H.ComponentHTML Action slots m
 renderEphem output =
@@ -281,13 +315,13 @@ renderEphem output =
     ]
 
 renderSource :: forall slots m. String -> H.ComponentHTML Action slots m
-renderSource currentlyRunning =
+renderSource sourceTabText =
   HH.div
     [ HP.class_ (H.ClassName "mt-5") ]
     [ HH.p_
         [ HH.text "Ctrl-<enter> to relaunch." ]
     , HH.textarea
-        [ HP.value currentlyRunning
+        [ HP.value sourceTabText
         , HP.class_ (H.ClassName "font-mono overflow-x-auto whitespace-pre min-w-[700px] h-screen p-4 bg-gray-50")
         , HE.onValueInput SetSource
         ]

@@ -13,22 +13,8 @@ import MidnightLang.Sexp (Sexp)
 import MidnightSystem.Display (Display)
 import MidnightSystem.Keyboard (Keyboard)
 import MidnightSystem.Keyboard as Keyboard
-import MidnightSystem.Output (StepOutput(..), jsToOutput)
+import MidnightSystem.Output (Output(..), StepOutput(..), jsToOutput)
 import MidnightSystem.Startup as Startup
-
-data Output
-  = OutputCrash String
-  | OutputSuccess { displaySexp :: Sexp, display :: Display, store :: Foreign, ephem :: Foreign }
-
-instance Show Output where
-  -- | For tests
-  show :: Output -> String
-  show = case _ of
-    OutputCrash err ->
-      "OutputCrash: " <> err
-
-    OutputSuccess _ ->
-      "<OutputSuccess>"
 
 newtype StartupFailure = StartupFailure String
 

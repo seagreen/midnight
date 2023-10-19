@@ -6,18 +6,22 @@ import Data.Either (Either(..))
 import Data.List ((:))
 import Data.List as PsList
 import Data.Maybe (Maybe(..), isJust)
+import Data.Newtype (unwrap)
+import EditorHuge as EditorHuge
 import Effect.Class (liftEffect)
 import Generated.EditorSource as EditorSource
 import Lib.Moore as Moore
 import MidnightJS as MidnightJS
 import MidnightLang.Sexp (Sexp)
 import MidnightLang.Sexp as Sexp
-import MidnightSystem (Output(..), StartupFailure(..))
+import MidnightSystem (StartupFailure(..))
 import MidnightSystem as MidnightSystem
 import MidnightSystem.Keyboard as Keyboard
+import MidnightSystem.Output (Output(..))
+import MidnightSystem.Output as Output
+import MidnightSystem.StoreToMoore (storeToMoore)
 import Node.Encoding (Encoding(..))
 import Node.FS.Sync (writeTextFile)
-import Test.EditorHuge as EditorHuge
 import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (fail, shouldEqual, shouldNotSatisfy)
 
@@ -140,10 +144,8 @@ spec = do
           in
             outputs `shouldNotSatisfy` isJust
 
-{-
-
     it "performance check - huge editor with with tons of definitions" do
-      case MidnightSystem.moore EditorHuge.string of
+      case MidnightSystem.moore (EditorHuge.string 1000) of
         Left (StartupFailure e) ->
           fail e
 
@@ -167,7 +169,70 @@ spec = do
           in
             outputs `shouldNotSatisfy` isJust
 
--}
+    it "editor starts from store" do
+      case MidnightSystem.moore EditorSource.string of
+        Left (StartupFailure e) ->
+          fail ("StartupFailure: " <> e)
+
+        Right startingMoore ->
+          case (unwrap startingMoore).output of
+            OutputCrash e ->
+              fail ("OutputCrash in startingMoore: " <> e)
+
+            OutputSuccess output ->
+              case Output.foreignToSexp output.store of
+                Left e ->
+                  fail ("foreignToSexp failure: " <> e)
+
+                Right storeSexp ->
+                  case storeToMoore (Sexp.prettyprintColsPrefer80 storeSexp) of
+                    Left e ->
+                      fail ("storeToMoore failure: " <> e)
+
+                    Right moore ->
+                      let
+                        outputs =
+                          Moore.stepMultipleUnlessPred moore getCrash
+                            ( Keyboard.noMeta (Keyboard.KeyArrow Keyboard.ArrowDown)
+                                : { key: Keyboard.KeyEnter, ctrlOrMeta: true } -- restart
+                                : Keyboard.noMeta (Keyboard.KeyArrow Keyboard.ArrowDown)
+                                : PsList.Nil
+                            )
+                      in
+                        outputs `shouldNotSatisfy` isJust
+
+    -- NOTE: almost full duplication between this and above test case
+    it "performance - editor starts from store with huge editor" do
+      case MidnightSystem.moore (EditorHuge.string 300) of
+        Left (StartupFailure e) ->
+          fail ("StartupFailure: " <> e)
+
+        Right startingMoore ->
+          case (unwrap startingMoore).output of
+            OutputCrash e ->
+              fail ("OutputCrash in startingMoore: " <> e)
+
+            OutputSuccess output ->
+              case Output.foreignToSexp output.store of
+                Left e ->
+                  fail ("foreignToSexp failure: " <> e)
+
+                Right storeSexp ->
+                  case storeToMoore (Sexp.prettyprintColsPrefer80 storeSexp) of
+                    Left e ->
+                      fail ("storeToMoore failure: " <> e)
+
+                    Right moore ->
+                      let
+                        outputs =
+                          Moore.stepMultipleUnlessPred moore getCrash
+                            ( Keyboard.noMeta (Keyboard.KeyArrow Keyboard.ArrowDown)
+                                : { key: Keyboard.KeyEnter, ctrlOrMeta: true } -- restart
+                                : Keyboard.noMeta (Keyboard.KeyArrow Keyboard.ArrowDown)
+                                : PsList.Nil
+                            )
+                      in
+                        outputs `shouldNotSatisfy` isJust
 
 {-
 -- Disabled because it's slow.
