@@ -155,7 +155,8 @@ string =
             ;
             (let
               ((f (eval sexp))
-               (arg (list 'system-input-start-with-store store)))
+               (new-store (store-set-step sexp store))
+               (arg (list 'system-input-start-with-store new-store)))
               (f arg))))))
 
 ; ------------------------------------------------------------------------------
