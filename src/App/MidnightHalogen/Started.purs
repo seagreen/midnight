@@ -169,26 +169,26 @@ component startingCode startingMoore =
           H.modify_ (\s -> s { mode = Live, moore = moore })
 
   render :: forall slots. State -> H.ComponentHTML Action slots m
-  render { mode, sourceTabText, moore, lastError } =
+  render state =
     HH.div_
       [ renderAbout
-      , renderButtons mode
-      , renderLastError lastError
-      , case mode of
+      , renderButtons state.mode
+      , renderLastError state.lastError
+      , case state.mode of
           Live ->
-            renderLive (unwrap moore).output
+            renderLive (unwrap state.moore).output
 
           Display ->
-            renderDisplay (unwrap moore).output
+            renderDisplay (unwrap state.moore).output
 
           Store ->
-            renderStore (unwrap moore).output
+            renderStore (unwrap state.moore).output state.storeTabText
 
           Ephem ->
-            renderEphem (unwrap moore).output
+            renderEphem (unwrap state.moore).output
 
           Source ->
-            renderSource sourceTabText
+            renderSource state.sourceTabText
       ]
 
 renderAbout :: forall slots m. H.ComponentHTML Action slots m
@@ -271,31 +271,42 @@ renderDisplay = case _ of
   OutputSuccess { displaySexp } ->
     codeBlock (Sexp.prettyprintColsPrefer80 displaySexp)
 
-renderStore :: forall slots m. Output -> H.ComponentHTML Action slots m
-renderStore output =
-  case output of
-    OutputCrash err ->
-      HH.p_ [ HH.text err ]
+renderStore :: forall slots m. Output -> Maybe String -> H.ComponentHTML Action slots m
+renderStore output mStoreTabText =
+  case mStoreTabText of
+    Nothing ->
+      outputToStoreText output
 
-    OutputSuccess { store } ->
-      case Output.foreignToSexp store of
-        Left e ->
-          HH.p_ [ HH.text ("Couldn't process store: " <> e) ]
+    Just storeText ->
+      renderSuccess storeText
 
-        Right sexp ->
-          let
-            storeStr = Sexp.prettyprintColsPrefer80 sexp
-          in
-            HH.div
-              [ HP.class_ (H.ClassName "mt-5") ]
-              [ HH.p_
-                  [ HH.text "Ctrl-<enter> to relaunch." ]
-              , HH.textarea
-                  [ HP.value storeStr
-                  , HP.class_ (H.ClassName "font-mono overflow-x-auto whitespace-pre min-w-[700px] h-screen p-4 bg-gray-50")
-                  , HE.onValueInput SetStore
-                  ]
-              ]
+  where
+  renderSuccess :: String -> H.ComponentHTML Action slots m
+  renderSuccess txt =
+    HH.div
+      [ HP.class_ (H.ClassName "mt-5") ]
+      [ HH.p_
+          [ HH.text "Ctrl-<enter> to relaunch." ]
+      , HH.textarea
+          [ HP.value txt
+          , HP.class_ (H.ClassName "font-mono overflow-x-auto whitespace-pre min-w-[700px] h-screen p-4 bg-gray-50")
+          , HE.onValueInput SetStore
+          ]
+      ]
+
+  outputToStoreText :: Output -> H.ComponentHTML Action slots m
+  outputToStoreText =
+    case _ of
+      OutputCrash err ->
+        HH.p_ [ HH.text err ]
+
+      OutputSuccess { store } ->
+        case Output.foreignToSexp store of
+          Left e ->
+            HH.p_ [ HH.text ("Couldn't process store: " <> e) ]
+
+          Right sexp ->
+            renderSuccess (Sexp.prettyprintColsPrefer80 sexp)
 
 renderEphem :: forall slots m. Output -> H.ComponentHTML Action slots m
 renderEphem output =
