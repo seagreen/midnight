@@ -21,6 +21,15 @@ import MidnightLang.Sexp as Sexp
 import MidnightSystem.Display (Display)
 import MidnightSystem.Display as Display
 
+-- TODO: the word "step" is used for either 3 kinds of things in this codebase,
+-- need to make it less confusing
+--
+-- 1. step from Lib.Moore
+--
+-- 2. step as in the closure stored in the ephem
+--
+-- 3. step from Output
+
 data Output
   = OutputCrash String
   | OutputSuccess { displaySexp :: Sexp, display :: Display, store :: Foreign, ephem :: Foreign }

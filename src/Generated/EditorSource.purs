@@ -64,17 +64,29 @@ string =
   'impl
     (lambda (input)
       (case input
-        ('system-input-start-with-editor-contents src)
-          (startup src)
 
+        ; Normal input
+        ;
+        ; We've gotten a keypress,
+        ; use it to update the store and ephem and return them.
         ('system-input-keypress untagged-store ephem k)
           (step-from-ephem (untagged-store->store untagged-store) ephem k)
 
-        ('store-to-ephem untagged-store)
-          (dict-singleton 'step step-single); ephem
+        ; 3 types of startup
 
-        ; NOTE: tagged store
-        ('system-input-start-with-store store)
+        ; Genesis start, only happens once
+        ('system-input-start-with-editor-contents src)
+          (startup src)
+
+        ; copy/paste start, a store's been pasted in the "Store" tab,
+        ; use it to rebuild the ephem.
+        ('store-to-ephem untagged-store)
+          (dict-singleton 'step step-keypress); ephem
+
+        ; Editor restarting itself with new code,
+        ; not called by the runtime system but by the `restart`
+        ; function below.
+        ('system-input-start-with-store store) ; NOTE: tagged store
           (start-with-store store))))
 
 (define startup
@@ -83,15 +95,15 @@ string =
       (let
         ((starting-editor (string->editor src))
          (display (view starting-editor))
-         (step-sexp (parse-or-crash src)))
+         (main-sexp (parse-or-crash src)))
         (list
           'output-store-and-ephem
           (store-remove-tags
             (store-new
               display
-              step-sexp
+              main-sexp
               starting-editor))
-          (dict-singleton 'step step-single))))) ; ephem
+          (dict-singleton 'step step-keypress))))) ; ephem
 
 (define parse-or-crash
   'impl
@@ -103,7 +115,7 @@ string =
         ('ok sexp)
           sexp)))
 
-(define step-single
+(define step-keypress
   'impl
     (lambda (store ephem k)
       (if
@@ -129,7 +141,7 @@ string =
       (list
         'output-store-and-ephem
         (store-remove-tags (store-update-display store))
-        (dict-singleton 'step step-single)))) ; as ephem
+        (dict-singleton 'step step-keypress)))) ; as ephem
 
 (define restart-key?
   'impl
@@ -155,7 +167,7 @@ string =
             ;
             (let
               ((f (eval sexp))
-               (new-store (store-set-step sexp store))
+               (new-store (store-set-main-sexp sexp store))
                (arg (list 'system-input-start-with-store new-store)))
               (f arg))))))
 
@@ -182,18 +194,18 @@ string =
 ; ------------------------------------------------------------------------------
 ; store
 ;
-; (struct store (display step editor))
+; (struct store (display main-sexp editor))
 ;
 ; Note that this is stored with the store and alist tags stripped off,
 ; the outer system expects a bare alist.
 
 (define store-new
   'impl
-    (lambda (display step editor)
+    (lambda (display main-sexp editor)
       (type-tag-add
         store-tag
         (dict-insert 'display display
-          (dict-insert 'step step
+          (dict-insert 'main-sexp main-sexp
             (dict-singleton 'editor editor))))))
 
 (define store-display
@@ -201,10 +213,10 @@ string =
     (lambda (store)
       (dict-lookup-or-crash 'display (type-tag-get store-tag store))))
 
-(define store-step
+(define store-main-sexp
   'impl
     (lambda (store)
-      (dict-lookup-or-crash 'step (type-tag-get store-tag store))))
+      (dict-lookup-or-crash 'main-sexp (type-tag-get store-tag store))))
 
 (define store-editor
   'impl
@@ -216,10 +228,10 @@ string =
     (lambda (display store)
       (store-modify-display (lambda (_) display) store)))
 
-(define store-set-step
+(define store-set-main-sexp
   'impl
-    (lambda (step store)
-      (store-modify-step (lambda (_) step) store)))
+    (lambda (main-sexp store)
+      (store-modify-main-sexp (lambda (_) main-sexp) store)))
 
 (define store-set-editor
   'impl
@@ -233,12 +245,12 @@ string =
         store-tag
         (dict-update 'display f (type-tag-get store-tag store)))))
 
-(define store-modify-step
+(define store-modify-main-sexp
   'impl
     (lambda (f store)
       (type-tag-add
         store-tag
-        (dict-update 'step f (type-tag-get store-tag store)))))
+        (dict-update 'main-sexp f (type-tag-get store-tag store)))))
 
 (define store-modify-editor
   'impl

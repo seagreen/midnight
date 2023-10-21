@@ -41,15 +41,15 @@ storeToMoore storeSexpString = do
 
   storeToEphemInput <- storeToInput storeForeign
 
-  stepForeign <- stepFromStore storeForeign
+  mainSexpForeign <- mainSexpFromStore storeForeign
 
-  stepEvaled <- applyStringToForeign "eval" stepForeign
+  mainEvaled <- applyStringToForeign "eval" mainSexpForeign
 
-  ephem <- MidnightJS.applyClosure stepEvaled [ storeToEphemInput ]
+  ephem <- MidnightJS.applyClosure mainEvaled [ storeToEphemInput ]
   pure
     ( Moore
         { output: OutputSuccess { displaySexp, display, store: storeForeign, ephem }
-        , step: stepper { step: stepEvaled, store: storeForeign, ephem }
+        , step: stepper { step: mainEvaled, store: storeForeign, ephem }
         }
     )
 
@@ -101,8 +101,8 @@ storeToInput store =
 )
 """
 
-stepFromStore :: Foreign -> Either String Foreign
-stepFromStore output =
+mainSexpFromStore :: Foreign -> Either String Foreign
+mainSexpFromStore output =
   applyStringToForeign src output
   where
   src :: String
@@ -128,7 +128,7 @@ stepFromStore output =
 )
 
 (lambda (store)
-  (untagged-alist-get-symbol 'step store))
+  (untagged-alist-get-symbol 'main-sexp store))
 
 )
 """

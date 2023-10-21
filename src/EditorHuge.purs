@@ -25,7 +25,7 @@ stringStart =
 stringMiddle :: Int -> String
 stringMiddle n =
   foldMap
-    (\n -> "(define foo" <> show n <> example)
+    (\i -> "(define foo" <> show i <> example)
     (1 .. n)
   where
   example :: String
