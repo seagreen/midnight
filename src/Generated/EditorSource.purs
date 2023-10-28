@@ -2750,23 +2750,10 @@ string =
       ys
       (list-reverse xs))))
 
-  (list-map-with-offset (lambda (f xs)
-    (list-reverse
-      (cadr
-        (list-foldl
-          (lambda (offsetAndAcc x)
-            (list
-              (increment (car offsetAndAcc))
-              (cons
-                (f (car offsetAndAcc) x)
-                (cadr offsetAndAcc))))
-          '(0 ())
-          xs)))))
-
   ; ----------------------------------------
-  ; alist
+  ; untagged alist
 
-  (alist-key? (lambda (k alist)
+  (untagged-alist-key? (lambda (k alist)
     (if
       (pair? alist)
       (let
@@ -2774,10 +2761,10 @@ string =
         (if
           (eq? k (car pair))
           't
-          (alist-key? k (cdr alist))))
+          (untagged-alist-key? k (cdr alist))))
       'f)))
 
-  (alist-get-or-crash (lambda (k alist)
+  (untagged-alist-get-or-crash (lambda (k alist)
     (if
       (pair? alist)
       (let
@@ -2785,20 +2772,17 @@ string =
         (if
           (eq? k (car pair))
           (cadr pair)
-          (alist-get-or-crash k (cdr alist))))
-      (crash (list 'alist-get-or-crash k)))))
+          (untagged-alist-get-or-crash k (cdr alist))))
+      (crash 'untagged-alist-get-or-crash k))))
 
-  ; ----------------------------------------
-  ; flat alist
-
-  (flat-alist-get-predicate (lambda (pred? xs)
+  (untagged-alist-get-predicate (lambda (pred? xs)
     (if
       (list-empty? xs)
-      (crash 'flat-alist-get-predicate)
+      (crash 'untagged-alist-get-predicate)
       (if
         (pred? (car xs))
         (cadr xs)
-        (flat-alist-get-predicate pred? (cdr xs))))))
+        (untagged-alist-get-predicate pred? (cdr xs))))))
 
   ; ----------------------------------------
   ; create a let
@@ -2815,10 +2799,10 @@ string =
       (let
         ((first (car sexp)))
         (if
-          (alist-key? first macrotable)
+          (untagged-alist-key? first macrotable)
           (macroexpand
             macrotable
-            ((alist-get-or-crash first macrotable) (cdr sexp)))
+            ((untagged-alist-get-or-crash first macrotable) (cdr sexp)))
           (list-map (lambda (item) (macroexpand macrotable item)) sexp)))
       sexp)))
 
@@ -2855,7 +2839,7 @@ string =
         definition-name
         (macroexpand
           macrotable
-          (flat-alist-get-predicate quoted-impl? (cddr sexp)))))))
+          (untagged-alist-get-predicate quoted-impl? (cddr sexp)))))))
 
   ; NOTE: could factor out the `acc` here:
   (process-define-macro (lambda (macrotable acc sexp)
