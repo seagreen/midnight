@@ -2560,8 +2560,9 @@ string =
 (define-macro cond
   'examples
     (
-      ; NOTE: You don't pass (cond (t a)) to the `cond` function,
-      ; but just the (t a) part.
+      ; NOTE: When using `cond` as a function instead of a macro
+      ; (such as here) we don't pass `'(cond ('t 'a))` to it.
+      ; Instead we pass `'(('t 'a))`.
       (eval (cond '(('t 'a)))) a
 
       (eval
