@@ -22,8 +22,8 @@ string =
 ;
 ;          Welcome.
 ;
-; Try changing the "-" in the definition below to ">"
-; and then pressing ctrl-ENTER.
+; Try using the arrow keys to navigate to the "-" in the definition below,
+; changing it to ">", and pressing ctrl/cmd-ENTER.
 ;
 (define bottom-status-bar
   'impl
