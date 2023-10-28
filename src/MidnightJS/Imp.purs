@@ -28,7 +28,7 @@ data Imp
   --
   -- Generated during optimization
   --
-  | TceFunction String (List String) Imp
+  | TceFunction String LamParams Imp
   | TceBaseCase String Imp
   | TceRecursiveCall String (List (Tuple String Imp))
 
@@ -71,19 +71,31 @@ toAST =
     If predicate consequent alternative ->
       AST.If (toAST predicate) (toAST consequent) (toAST alternative)
 
-    TceFunction tce_metavar_name params body ->
+    TceFunction tce_metavar_name lamParams body ->
       let
         tceParams =
-          (\param -> tce_metavar_name <> "_" <> param)
-            <$> params
+          AST.mapLamParams
+            (\param -> tce_metavar_name <> "_" <> param)
+            lamParams
       in
-        AST.Lam (LamParamsFixed tceParams)
+        AST.Lam tceParams
           ( AST.Block
               ( AST.JsLet (tce_metavar_name <> "_done") (Just (AST.JsBool false))
                   : AST.JsLet (tce_metavar_name <> "_result") Nothing
                   : AST.Const
                       (tce_metavar_name <> "_loop")
-                      (toAST (Lam (LamParamsFixed params) body))
+                      ( toAST
+                          ( Lam
+                              ( case tceParams of
+                                  LamParamsFixed params ->
+                                    LamParamsFixed params
+
+                                  LamParamsVariadic param ->
+                                    LamParamsFixed (List.singleton param)
+                              )
+                              body
+                          )
+                      )
                   : AST.While
                       (AST.Not (tce_metavar_name <> "_done"))
                       ( AST.Block
@@ -91,7 +103,13 @@ toAST =
                               (tce_metavar_name <> "_result")
                               ( AST.App
                                   (AST.Var (tce_metavar_name <> "_loop"))
-                                  (AST.Var <$> tceParams)
+                                  ( case tceParams of
+                                      LamParamsFixed params ->
+                                        AST.Var <$> params
+
+                                      LamParamsVariadic param ->
+                                        List.singleton (AST.Var param)
+                                  )
                               ) : List.Nil
                           )
                       )

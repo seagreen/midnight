@@ -278,7 +278,7 @@ letRecursiveExampleVarArgs =
         (= (car n) 0)
         'a
         (go (- (car n) 1))))))
-  (go 2))
+  (go 20000)) ; TODO: lower when done
 """
 
 nestedLetRecursiveExample :: String

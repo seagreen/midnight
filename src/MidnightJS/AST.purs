@@ -59,6 +59,15 @@ derive instance Generic LamParams _
 instance Show LamParams where
   show a = genericShow a
 
+mapLamParams :: (String -> String) -> LamParams -> LamParams
+mapLamParams f =
+  case _ of
+    LamParamsFixed params ->
+      LamParamsFixed (f <$> params)
+
+    LamParamsVariadic param ->
+      LamParamsVariadic (f param)
+
 serialize :: AST -> String
 serialize =
   case _ of
