@@ -225,6 +225,14 @@ spec = do
         JS.eval letRecursiveExample
           `shouldEqual` Right "a"
 
+      it "allows-recursion-for-varargs-functions" do
+        JS.eval letRecursiveExampleVarArgs
+          `shouldEqual` Right "a"
+
+      it "recursive let can be nested in another recursive let" do
+        JS.eval nestedLetRecursiveExample
+          `shouldEqual` Right "a"
+
     describe "string literal" do
       it "works" do
         JS.eval "\"abc\""
@@ -257,5 +265,38 @@ letRecursiveExample =
         (= n 0)
         'a
         (go (- n 1))))))
+  (go 2))
+"""
+
+letRecursiveExampleVarArgs :: String
+letRecursiveExampleVarArgs =
+  """
+(let
+  ((go
+    (lambda n
+      (if
+        (= (car n) 0)
+        'a
+        (go (- (car n) 1))))))
+  (go 2))
+"""
+
+nestedLetRecursiveExample :: String
+nestedLetRecursiveExample =
+  """
+(let
+  ((go
+    (let
+      ((nested-go
+        (lambda (x)
+          (if
+            (= x 0)
+            'a
+            (nested-go (- x 1))))))
+      (lambda (n)
+        (if
+          (= n 0)
+          (nested-go 2)
+          (go (- n 1)))))))
   (go 2))
 """
