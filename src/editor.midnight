@@ -1504,52 +1504,6 @@
       ('b) 'y
       ('c) z))
 
-(define test-cond-macro
-  'examples
-    (
-      test-cond-macro b
-    )
-  'impl
-    (cond
-      ('f a)
-      ('t 'b)
-      ('f c)))
-
-(define test-or-macro
-  'examples
-    (
-      (test-or-macro 't 't) t
-      (test-or-macro 't 'f) t
-      (test-or-macro 'f 't) t
-      (test-or-macro 'f 'f) f
-    )
-  'impl
-    (lambda (a b)
-      (or a b)))
-
-; (define test-and-macro
-;   'examples
-;     (
-;       (and 't 't) t
-;       (and 't 'f) f
-;       (and 'f 't) f
-;       (and 'f 'f) f
-;     )
-;   'impl
-;     'stub)
-
-(define test-and-macro
-  'examples
-    (
-      (test-and-macro 't 't) t
-      (test-and-macro 't 'f) f
-      (test-and-macro 'f 't) f
-      (test-and-macro 'f 'f) f
-    )
-  'impl
-    (lambda (a b)
-      (and a b)))
-
 ; ------------------------------------------------------------------------------
 ; test builtins
 
@@ -2474,7 +2428,23 @@
                 'f)
               'f))))))
 
+; ------------------------------------------------------------------------------
+; macros
+
 (define-macro cond
+  'examples
+    (
+      ; NOTE: You don't pass (cond (t a)) to the `cond` function,
+      ; but just the (t a) part.
+      (eval (cond '(('t 'a)))) a
+
+      (eval
+        (cond
+          '(('f a)
+           ('t 'b)
+           ('f c))))
+        b
+    )
   'impl
     (lambda (sexps)
       (cond-go sexps)))
@@ -2498,6 +2468,13 @@
           ''cond-no-match))))
 
 (define-macro or
+  'examples
+    (
+      (eval (or '('t 't))) t
+      (eval (or '('t 'f))) t
+      (eval (or '('f 't))) t
+      (eval (or '('f 'f))) f
+    )
   'impl
     (lambda (sexps)
       (let
@@ -2509,6 +2486,13 @@
           (cadr args)))))
 
 (define-macro and
+  'examples
+    (
+      (eval (and '('t 't))) t
+      (eval (and '('t 'f))) f
+      (eval (and '('f 't))) f
+      (eval (and '('f 'f))) f
+    )
   'impl
     (lambda (sexps)
       (let
