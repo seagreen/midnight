@@ -45,6 +45,7 @@ string =
             (string-append
               "lines: "
               (int->string (editor-line-count editor)))))
+
         (string-pad-center
           80
           cursor
@@ -2575,13 +2576,6 @@ string =
     )
   'impl
     (lambda (sexps)
-      (cond-go sexps)))
-
-; TODO: this should be able to be pulled up into a `let` in cond,
-; got an error when I tried to do so.
-(define cond-go
-  'impl
-    (lambda (sexps)
       (if
         (pair? sexps)
         (let
@@ -2590,7 +2584,7 @@ string =
             'if
             (car pair)
             (cadr pair)
-            (cond-go (cdr sexps))))
+            (cond (cdr sexps))))
         (list
           'crash
           ''cond-no-match))))
@@ -2847,12 +2841,17 @@ string =
   (process-define-macro (lambda (macrotable acc sexp)
     (let
       ((name-and-body (definition->name-and-macroexpanded-impl-body macrotable sexp))
+       (new-acc (cons name-and-body acc))
        (name (car name-and-body))
        (body (cadr name-and-body))
-       (f (eval (to-let acc body))))
+
+       ; If we pass `acc` instead of `new-acc` here
+       ; the macro won't be able to recursively refer to itself.
+       ; For an example of this see `cond`.
+       (f (eval (to-let new-acc body))))
       (list
         (cons (list name f) macrotable)
-        (cons name-and-body acc)))))
+        new-acc))))
 
   (define? (lambda (sexp)
     (if
