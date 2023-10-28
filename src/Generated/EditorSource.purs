@@ -2845,7 +2845,7 @@ string =
        (name (car name-and-body))
        (body (cadr name-and-body))
 
-       ; Can't do `(f (eval (to-let acc body))))` here,
+       ; Can't do `(f (eval (to-let acc body)))` here,
        ; because then the macro wouldn't be able to recursively refer to itself.
        ; For an example of this see `cond`.
        (f (eval (to-let new-acc name))))
