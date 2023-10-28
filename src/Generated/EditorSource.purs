@@ -1765,36 +1765,6 @@ string =
 ; ------------------------------------------------------------------------------
 ; list
 
-(define cadr
-  'impl
-    (lambda (xs)
-      (car (cdr xs))))
-
-(define caddr
-  'impl
-    (lambda (xs)
-      (car (cdr (cdr xs)))))
-
-(define cadddr
-  'impl
-    (lambda (xs)
-      (car (cdr (cdr (cdr xs))))))
-
-(define cddr
-  'impl
-    (lambda (xs)
-      (cdr (cdr xs))))
-
-(define list
-  'examples
-    (
-      (list 'a 'b 'c) (a b c)
-      (list)          ()
-    )
-  'impl
-    (lambda xs
-      xs))
-
 (define list-pad
   'examples
     (
@@ -2519,6 +2489,92 @@ string =
                 'f)
               'f))))))
 
+(define-macro cond
+  'impl
+    (lambda (sexps)
+      (cond-go sexps)))
+
+; TODO: this should be able to be pulled up into a `let` in cond,
+; got an error when I tried to do so.
+(define cond-go
+  'impl
+    (lambda (sexps)
+      (if
+        (pair? sexps)
+        (let
+          ((pair (car sexps)))
+          (list
+            'if
+            (car pair)
+            (cadr pair)
+            (cond-go (cdr sexps))))
+        (list
+          'crash
+          ''cond-no-match))))
+
+(define-macro or
+  'impl
+    (lambda (sexps)
+      (let
+        ((args (two-args sexps)))
+        (list
+          'if
+          (car args)
+          ''t
+          (cadr args)))))
+
+(define-macro and
+  'impl
+    (lambda (sexps)
+      (let
+        ((args (two-args sexps)))
+        (list
+          'if
+          (car args)
+          (cadr args)
+          ''f))))
+
+(define two-args
+  'impl
+  (lambda (sexps)
+    (if
+      (pair? sexps)
+      (if
+        (pair? (cdr sexps))
+        (list (car sexps) (cadr sexps))
+        (crash 'two-args-second-not-present))
+      (crash 'two-args-first-not-present))))
+
+(define list
+  'examples
+    (
+      (list 'a 'b 'c) (a b c)
+      (list)          ()
+    )
+  'impl
+    (lambda xs
+      xs))
+
+(define cadr
+  'impl
+    (lambda (xs)
+      (car (cdr xs))))
+
+(define caddr
+  'impl
+    (lambda (xs)
+      (car (cdr (cdr xs)))))
+
+(define cadddr
+  'impl
+    (lambda (xs)
+      (car (cdr (cdr (cdr xs))))))
+
+(define cddr
+  'impl
+    (lambda (xs)
+      (cdr (cdr xs))))
+
 ; ------------------------------------------------------------------------------
 ; resume plain midnight
 ; ------------------------------------------------------------------------------
@@ -2571,6 +2627,9 @@ string =
   (cadr (lambda (xs)
     (car (cdr xs))))
 
+  (cddr (lambda (xs)
+    (cdr (cdr xs))))
+
   (list (lambda xs
     xs))
 
@@ -2582,6 +2641,12 @@ string =
           acc
           (loop (f acc (car xs)) (cdr xs))))))
       (loop start xs))))
+
+  (list-foldr (lambda (f start xs)
+    (list-foldl
+      (lambda (acc x) (f x acc))
+      start
+      (list-reverse xs))))
 
   (list-reverse (lambda (xs)
     (list-foldl (lambda (acc x) (cons x acc)) '() xs)))
@@ -2651,56 +2716,6 @@ string =
 
   (to-let (lambda (varlist body)
     (list 'let varlist body)))
-
-  ; ----------------------------------------
-  ; macro helpers
-
-  (two-args (lambda (sexps)
-    (if
-      (pair? sexps)
-      (if
-        (pair? (cdr sexps))
-        (list (car sexps) (cadr sexps))
-        (crash 'two-args-second-not-present))
-      (crash 'two-args-first-not-present))))
-
-  ; ----------------------------------------
-  ; macros
-
-  (identity-macro (lambda (sexps)
-    (car sexps)))
-
-  (and-macro (lambda (sexps)
-    (let
-      ((args (two-args sexps)))
-      (list
-        'if
-        (car args)
-        (cadr args)
-        ''f))))
-
-  (or-macro (lambda (sexps)
-    (let
-      ((args (two-args sexps)))
-      (list
-        'if
-        (car args)
-        ''t
-        (cadr args)))))
-
-  (cond-macro (lambda (sexps)
-    (if
-      (pair? sexps)
-      (let
-        ((pair (car sexps)))
-        (list
-          'if
-           (car pair)
-           (cadr pair)
-           (cond-macro (cdr sexps))))
-      (list
-        'crash
-        ''cond-no-match))))
 
   ; ----------------------------------------
   ; case macro
@@ -2787,15 +2802,11 @@ string =
   ; ----------------------------------------
   ; macroexpand
 
-  (macrotable
+  (starting-macrotable
     (list
-      (list 'identity-macro identity-macro)
-      (list 'and and-macro)
-      (list 'or or-macro)
-      (list 'cond cond-macro)
       (list 'case case-macro)))
 
-  (macroexpand (lambda (sexp)
+  (macroexpand (lambda (macrotable sexp)
     (if
       (pair? sexp)
       (let
@@ -2803,28 +2814,56 @@ string =
         (if
           (alist-key? first macrotable)
           (macroexpand
+            macrotable
             ((alist-get-or-crash first macrotable) (cdr sexp)))
-          (list-map macroexpand sexp)))
+          (list-map (lambda (item) (macroexpand macrotable item)) sexp)))
       sexp)))
 
   ; ----------------------------------------
   ; expand a sexp of defines+impls to a varlist
 
   (defines-to-varlist (lambda (sexps)
-    (list-map to-define sexps)))
+    (cadr
+      (list-foldr
+        process-top-level-definition
+        (list starting-macrotable '())
+        sexps))))
 
-  (to-define (lambda (sexp)
-    (if
-      (define? sexp)
-      (let
-        ((less-define (cdr sexp)))
-        ; NOTE: Can't use `(flat-alist-get 'impl` here,
-        ; because the target impl is still quoted:
+  (process-top-level-definition (lambda (sexp macrotable-and-acc)
+    (let
+      ((macrotable (car macrotable-and-acc))
+       (acc (cadr macrotable-and-acc)))
+      (if
+        (define? sexp)
         (list
-          (car less-define)
-          (macroexpand
-            (flat-alist-get-predicate quoted-impl? (cdr less-define)))))
-      (crash 'to-define))))
+          macrotable
+          (cons
+            (definition->name-and-macroexpanded-impl-body macrotable sexp)
+            acc))
+        (if
+          (define-macro? sexp)
+          (process-define-macro macrotable acc sexp)
+          (crash 'process-top-level-definition))))))
+
+  (definition->name-and-macroexpanded-impl-body (lambda (macrotable sexp)
+    (let
+      ((definition-name (cadr sexp)))
+      (list
+        definition-name
+        (macroexpand
+          macrotable
+          (flat-alist-get-predicate quoted-impl? (cddr sexp)))))))
+
+  ; NOTE: could factor out the `acc` here:
+  (process-define-macro (lambda (macrotable acc sexp)
+    (let
+      ((name-and-body (definition->name-and-macroexpanded-impl-body macrotable sexp))
+       (name (car name-and-body))
+       (body (cadr name-and-body))
+       (f (eval (to-let acc body))))
+      (list
+        (cons (list name f) macrotable)
+        (cons name-and-body acc)))))
 
   (define? (lambda (sexp)
     (if
@@ -2834,6 +2873,18 @@ string =
         (if
           (symbol? first)
           (symbol-eq? first 'define)
+          'f))
+      'f)))
+
+  ; near-duplicate of `define?`
+  (define-macro? (lambda (sexp)
+    (if
+      (pair? sexp)
+      (let
+        ((first (car sexp)))
+        (if
+          (symbol? first)
+          (symbol-eq? first 'define-macro)
           'f))
       'f)))
 
