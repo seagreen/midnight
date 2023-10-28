@@ -81,7 +81,9 @@ toAST =
           ( AST.Block
               ( AST.JsLet (tce_metavar_name <> "_done") (Just (AST.JsBool false))
                   : AST.JsLet (tce_metavar_name <> "_result") Nothing
-                  : AST.Const (tce_metavar_name <> "_loop") (toAST body)
+                  : AST.Const
+                      (tce_metavar_name <> "_loop")
+                      (toAST (Lam (LamParamsFixed params) body))
                   : AST.While
                       (AST.Not (tce_metavar_name <> "_done"))
                       ( AST.Block

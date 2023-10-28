@@ -136,14 +136,12 @@ tailCallCheck name expr =
               TceFunction
                 tce_metavar_name
                 params
-                ( Lam (LamParamsFixed params)
-                    -- TODO: continue TCE'ing again below into the body?
-                    ( tceReturns
-                        name
-                        tce_metavar_name
-                        params
-                        body
-                    )
+                -- TODO: continue TCE'ing again below into the body?
+                ( tceReturns
+                    name
+                    tce_metavar_name
+                    params
+                    body
                 )
 
           else
