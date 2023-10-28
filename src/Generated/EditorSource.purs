@@ -1428,14 +1428,14 @@ string =
   'examples
     (
       (defines->example-tests '((define one 'impl 1)))
-        (begin-order-unspecified)
+        (begin)
 
       (defines->example-tests '((define one 'examples (one 1) 'impl 1)))
-        (begin-order-unspecified (assert-eq one (quote 1)))
+        (begin (assert-eq one (quote 1)))
     )
   'impl
     (lambda (defines)
-      (cons 'begin-order-unspecified
+      (cons 'begin
         (list-map
           example-to-runnable
           (list-flatmap flat-alist-to-examples defines)))))
@@ -2496,7 +2496,8 @@ string =
         'f
         't)))
 
-(define begin-order-unspecified
+; Order relies on Midnight evaluating arguments from left to right.
+(define begin
   'impl
     (lambda xs
       'begin-void))
