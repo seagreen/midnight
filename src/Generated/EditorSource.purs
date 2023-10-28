@@ -1717,6 +1717,96 @@ string =
           def)))
 
 ; ------------------------------------------------------------------------------
+; case macro
+
+; case expressions are made up of a scrutinee
+; followed by "arms",
+; where each arm is a pair of a pattern and an alternative.
+;
+; Patterns consist of a constructor and pattern (or binding) variables.
+;
+; The parts of the scrutinee that bind to variables are called matched
+; (or captured) values.
+;
+;
+;
+; Some notes, currently:
+;
+; - scrutinee must evaluate to a list, where the first element is a symbol
+; - no way to match int literals atm
+(define-macro case
+  'impl
+    (lambda (sexps)
+      (list
+        'let
+        (list
+          (list
+            'case-macro-scrutinee ; stealing this from available variables
+            (car sexps)))
+        (arms->ifs (cdr sexps)))))
+
+(define arms->ifs
+  'impl
+    (lambda (arms)
+      (if
+        (list-empty? arms)
+        (list
+          'crash
+          ''case-no-match)
+        (let
+          ((pattern (car arms))
+          (rest (cdr arms)))
+          (if
+            (list-empty? rest)
+            (crash 'case-macro-no-alternative-for-pattern)
+            (let
+              ((alternative (car rest))
+              (remainingArms (cdr rest)))
+              (if
+                (list-empty? pattern)
+                (crash 'case-macro-pattern-empty)
+                (let
+                  ((pattern-constructor (car pattern))
+                  (bindingVars (cdr pattern)))
+                  (list
+                    'if
+                    (list
+                      'eq?
+                      pattern-constructor
+                      (list
+                        'car ; TODO: Assumes the scrutinee evaluates to a list
+                        'case-macro-scrutinee))
+                    (binding-vars-and-alternative->result bindingVars alternative)
+                    (arms->ifs remainingArms))))))))))
+
+; Will output an expression that uses the `case-macro-scrutinee` variable.
+(define binding-vars-and-alternative->result
+  'impl
+    (lambda (bindingVars alternative)
+      ; Note that it's invalid to generate a `let` with `(())` as the assignments
+      (if
+        (list-empty? bindingVars)
+        alternative
+        (list
+          'let
+          (list-map-with-offset case-macro-binding bindingVars)
+          alternative))))
+
+(define case-macro-binding
+  'impl
+    (lambda (offset bindingVar)
+      (let
+        ((generate-cdr (lambda (x)
+          (list
+            'cdr
+            x))))
+        (list
+          bindingVar
+          (list
+            'car
+            (repeat (+ offset 1) generate-cdr 'case-macro-scrutinee))))))
+
+; ------------------------------------------------------------------------------
 ; list
 
 (define list-pad
@@ -1992,18 +2082,6 @@ string =
           't
           (list-member? x (cdr xs))))))
 
-(define list-map-with-index
-  'examples
-    (
-      (list-map-with-index (lambda (n x) (list n x)) '(a b)) ((1 a) (2 b))
-      (list-map-with-index (lambda (n x) (list n x)) '())    ()
-    )
-  'impl
-    (lambda (f xs)
-      (list-map-with-offset
-        (lambda (n x) (f (increment n) x))
-        xs)))
-
 (define list-map-with-offset
   'examples
     (
@@ -2023,6 +2101,18 @@ string =
                   (cadr offsetAndAcc))))
             '(0 ())
             xs)))))
+
+(define list-map-with-index
+  'examples
+    (
+      (list-map-with-index (lambda (n x) (list n x)) '(a b)) ((1 a) (2 b))
+      (list-map-with-index (lambda (n x) (list n x)) '())    ()
+    )
+  'impl
+    (lambda (f xs)
+      (list-map-with-offset
+        (lambda (n x) (f (increment n) x))
+        xs)))
 
 (define list-map-by-index
   'examples
@@ -2406,6 +2496,14 @@ string =
         't
         (crash (list 'assert-eq a b)))))
 
+(define repeat
+  'impl
+    (lambda (n f target)
+      (if
+        (= n 0)
+        target
+        (repeat (decrement n) f (f target)))))
+
 (define eq?
   'examples
     (
@@ -2444,7 +2542,7 @@ string =
               'f))))))
 
 ; ------------------------------------------------------------------------------
-; macros
+; basic macros
 
 (define-macro cond
   'examples
@@ -2599,12 +2697,6 @@ string =
   (decrement (lambda (n)
     (- n 1)))
 
-  (repeat (lambda (n f target)
-    (if
-      (= n 0)
-      target
-      (repeat (decrement n) f (f target)))))
-
   ; ----------------------------------------
   ; list
 
@@ -2702,93 +2794,7 @@ string =
     (list 'let varlist body)))
 
   ; ----------------------------------------
-  ; case macro
-
-  ; case expressions are made up of a scrutinee
-  ; followed by "arms",
-  ; where each arm is a pair of a pattern and an alternative.
-  ;
-  ; Patterns consist of a constructor and pattern (or binding) variables.
-  ;
-  ; The parts of the scrutinee that bind to variables are called matched
-  ; (or captured) values.
-  ;
-  ;
-  ;
-  ; Some notes, currently:
-  ;
-  ; - scrutinee must evaluate to a list, where the first element is a symbol
-  ; - no way to match int literals atm
-  (case-macro (lambda (sexps)
-    (list
-      'let
-      (list
-        (list
-          'case-macro-scrutinee ; stealing this from available variables
-          (car sexps)))
-      (arms->ifs (cdr sexps)))))
-
-  (arms->ifs (lambda (arms)
-    (if
-      (list-empty? arms)
-      (list
-        'crash
-        ''case-no-match)
-      (let
-        ((pattern (car arms))
-         (rest (cdr arms)))
-        (if
-          (list-empty? rest)
-          (crash 'case-macro-no-alternative-for-pattern)
-          (let
-            ((alternative (car rest))
-             (remainingArms (cdr rest)))
-            (if
-              (list-empty? pattern)
-              (crash 'case-macro-pattern-empty)
-              (let
-                ((pattern-constructor (car pattern))
-                 (bindingVars (cdr pattern)))
-                (list
-                  'if
-                  (list
-                    'eq?
-                    pattern-constructor
-                    (list
-                      'car ; TODO: Assumes the scrutinee evaluates to a list
-                      'case-macro-scrutinee))
-                  (binding-vars-and-alternative->result bindingVars alternative)
-                  (arms->ifs remainingArms))))))))))
-
-  ; Will output an expression that uses the `case-macro-scrutinee` variable.
-  (binding-vars-and-alternative->result (lambda (bindingVars alternative)
-    ; Note that it's invalid to generate a `let` with `(())` as the assignments
-    (if
-      (list-empty? bindingVars)
-      alternative
-      (list
-        'let
-        (list-map-with-offset case-macro-binding bindingVars)
-        alternative))))
-
-  (case-macro-binding (lambda (offset bindingVar)
-    (let
-      ((generate-cdr (lambda (x)
-        (list
-          'cdr
-          x))))
-      (list
-        bindingVar
-        (list
-          'car
-          (repeat (+ offset 1) generate-cdr 'case-macro-scrutinee))))))
-
-  ; ----------------------------------------
   ; macroexpand
-
-  (starting-macrotable
-    (list
-      (list 'case case-macro)))
 
   (macroexpand (lambda (macrotable sexp)
     (if
@@ -2810,7 +2816,7 @@ string =
     (cadr
       (list-foldr
         process-top-level-definition
-        (list starting-macrotable '())
+        (list '() '())
         sexps))))
 
   (process-top-level-definition (lambda (sexp macrotable-and-acc)
