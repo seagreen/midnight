@@ -136,12 +136,23 @@ tailCallCheck name expr =
               TceFunction
                 tce_metavar_name
                 params
-                -- TODO: continue TCE'ing again below into the body?
                 ( tceReturns
                     name
                     tce_metavar_name
                     params
-                    body
+                    -- The `tailCallElimination` call here is to support
+                    -- tail recursive functions which themselves define other
+                    -- tail recursive functions in their `let`s.
+                    --
+                    -- See the `nestedLetRecursiveExample` function in the tests.
+                    -- Note that even after turning the argument to `nested-go` up to
+                    -- 40000 in that test,
+                    -- and removing the `tailCallElimination` invocation here,
+                    -- the test still passes.
+                    --
+                    -- Not sure why that is, maybe a JS optimization is happening
+                    -- due to the simplicity of `nested-go` that removes the tail recursion?
+                    (tailCallElimation body)
                 )
 
           else
