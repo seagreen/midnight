@@ -1467,59 +1467,6 @@
         (list 'assert-eq expr quoted-expected))))
 
 ; ------------------------------------------------------------------------------
-; test macros
-
-; If you put this test before `list` is defined you get a pretty scary error:
-; `#<undef> is not a function`.
-(define case-test-capture-multiple
-  'examples
-    (
-      case-test-capture-multiple (foo bar)
-    )
-  'impl
-    (case '(b foo bar)
-      ('a x)   no
-      ('b x y) (list x y)
-      ('c x)   nope))
-
-(define case-test-capture
-  'examples
-    (
-      case-test-capture 12
-    )
-  'impl
-    (case '(b 10)
-      ('a x) (+ x 1)
-      ('b x) (+ x 2)
-      ('c x) (+ x 3)))
-
-(define case-test-basic
-  'examples
-    (
-      case-test-basic y
-    )
-  'impl
-    (case '(b)
-      ('a) x
-      ('b) 'y
-      ('c) z))
-
-; ------------------------------------------------------------------------------
-; test builtins
-
-(define test-builtin-/
-  'examples
-    (
-      (/ 5 2) 2
-      (/ 5 -2) -2
-      (/ 0 2) 0
-      ; (/ 5 0) 2
-      ; (/ 0 0) 0
-    )
-  'impl
-    'stub)
-
-; ------------------------------------------------------------------------------
 ; dict
 
 (define dict-singleton
@@ -1702,6 +1649,57 @@
           def)))
 
 ; ------------------------------------------------------------------------------
+; test builtins
+
+(define test-builtin-/
+  'examples
+    (
+      (/ 5 2) 2
+      (/ 5 -2) -2
+      (/ 0 2) 0
+      ; (/ 5 0) 2
+      ; (/ 0 0) 0
+    )
+  'impl
+    'stub)
+
+; ------------------------------------------------------------------------------
+; test case
+
+(define case-test-capture-multiple
+  'examples
+    (
+      case-test-capture-multiple (foo bar)
+    )
+  'impl
+    (case '(b foo bar)
+      ('a x)   no
+      ('b x y) (list x y)
+      ('c x)   nope))
+
+(define case-test-capture
+  'examples
+    (
+      case-test-capture 12
+    )
+  'impl
+    (case '(b 10)
+      ('a x) (+ x 1)
+      ('b x) (+ x 2)
+      ('c x) (+ x 3)))
+
+(define case-test-basic
+  'examples
+    (
+      case-test-basic y
+    )
+  'impl
+    (case '(b)
+      ('a) x
+      ('b) 'y
+      ('c) z))
+
+; ------------------------------------------------------------------------------
 ; case macro
 
 ; case expressions are made up of a scrutinee
@@ -1720,6 +1718,21 @@
 ; - scrutinee must evaluate to a list, where the first element is a symbol
 ; - no way to match int literals atm
 (define-macro case
+  ; NOTE, this style of test doesn't work for `case`,
+  ; it generates code using `eq?` which is defined separately,
+  ; and `eval` won't have it in scope:
+  ;
+  ; 'examples
+  ;   (
+  ;     (eval
+  ;       (case
+  ;         '(
+  ;           '(b)
+  ;             ('a) x
+  ;             ('b) 'y
+  ;             ('c) z)))
+  ;       y
+  ;   )
   'impl
     (lambda (sexps)
       (list
