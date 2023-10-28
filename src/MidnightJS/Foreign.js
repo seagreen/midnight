@@ -6,7 +6,6 @@ export const _evalToJson = left => right => src => {
   try {
     return right(evalWithBuiltinSnippet(src));
   } catch (error) {
-    throw error;
     return left(error.toString());
   }
 }
