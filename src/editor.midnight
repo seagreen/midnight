@@ -2830,10 +2830,10 @@
        (name (car name-and-body))
        (body (cadr name-and-body))
 
-       ; If we pass `acc` instead of `new-acc` here
-       ; the macro won't be able to recursively refer to itself.
+       ; Can't do `(f (eval (to-let acc body))))` here,
+       ; because then the macro wouldn't be able to recursively refer to itself.
        ; For an example of this see `cond`.
-       (f (eval (to-let new-acc body))))
+       (f (eval (to-let new-acc name))))
       (list
         (cons (list name f) macrotable)
         new-acc))))
