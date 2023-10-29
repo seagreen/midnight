@@ -6,6 +6,7 @@ export const _evalToJson = left => right => src => {
   try {
     return right(evalWithBuiltinSnippet(src));
   } catch (error) {
+    throw error;
     return left(error.toString());
   }
 }
@@ -65,12 +66,7 @@ const builtinSnippet = `"use strict";
 const globalObject = typeof window !== 'undefined' ? window : global;
 
 const evalMidnight = midnightAsJson => {
-  const getRandomDigits = max => (Math.floor(Math.random() * max)).toString().padStart(4, '0');
-  const label = 'eval_internal_' + getRandomDigits(9999)
-  console.time(label);
-  const a = globalObject.evalJsonToForeignNoCatchAttachedToGlobalObject(midnightAsJson);
-  console.timeEnd(label);
-  return a;
+  return globalObject.evalJsonToForeignNoCatchAttachedToGlobalObject(midnightAsJson);
 }
 
 // Conditional
@@ -121,6 +117,11 @@ const isSymbolEq = (a, b) => {
 
 const codepointsToSymbol = xs => {
   return String.fromCodePoint(...(linkedListToArray(xs)));
+}
+
+// TODO: duplicate (of function in the SystemForeign module)
+const symbolToCodepoints = sym => {
+  return arrayToLinkedList(Array.from(sym).map(singleCharStr => singleCharStr.codePointAt(0)));
 }
 
 // Integer

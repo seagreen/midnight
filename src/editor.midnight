@@ -180,8 +180,6 @@
 ; ------------------------------------------------------------------------------
 ; store
 ;
-; (struct store (display main-sexp editor))
-;
 ; Note that this is stored with the store and alist tags stripped off,
 ; the outer system expects a bare alist.
 
@@ -194,60 +192,7 @@
           (dict-insert 'main-sexp main-sexp
             (dict-singleton 'editor editor))))))
 
-(define store-display
-  'impl
-    (lambda (store)
-      (dict-lookup-or-crash 'display (type-tag-get store-tag store))))
-
-(define store-main-sexp
-  'impl
-    (lambda (store)
-      (dict-lookup-or-crash 'main-sexp (type-tag-get store-tag store))))
-
-(define store-editor
-  'impl
-    (lambda (store)
-      (dict-lookup-or-crash 'editor (type-tag-get store-tag store))))
-
-(define store-set-display
-  'impl
-    (lambda (display store)
-      (store-modify-display (lambda (_) display) store)))
-
-(define store-set-main-sexp
-  'impl
-    (lambda (main-sexp store)
-      (store-modify-main-sexp (lambda (_) main-sexp) store)))
-
-(define store-set-editor
-  'impl
-    (lambda (editor store)
-      (store-modify-editor (lambda (_) editor) store)))
-
-(define store-modify-display
-  'impl
-    (lambda (f store)
-      (type-tag-add
-        store-tag
-        (dict-update 'display f (type-tag-get store-tag store)))))
-
-(define store-modify-main-sexp
-  'impl
-    (lambda (f store)
-      (type-tag-add
-        store-tag
-        (dict-update 'main-sexp f (type-tag-get store-tag store)))))
-
-(define store-modify-editor
-  'impl
-    (lambda (f store)
-      (type-tag-add
-        store-tag
-        (dict-update 'editor f (type-tag-get store-tag store)))))
-
-(define store-tag
-  'impl
-    'store-tag)
+(define-struct store (display main-sexp editor))
 
 ; ------------------------------------------------------------------------------
 ; editor view
@@ -580,8 +525,6 @@
 
 ; ------------------------------------------------------------------------------
 ; editor
-;
-; (struct editor (viewport-row cursor shadow-cursor-column text line-count))
 
 (define string->editor
   'impl
@@ -603,101 +546,7 @@
               (dict-insert 'text text
                 (dict-singleton 'line-count (list-length text)))))))))
 
-(define editor-viewport-row
-  'impl
-    (lambda (editor)
-      (dict-lookup-or-crash 'viewport-row (type-tag-get editor-tag editor))))
-
-(define editor-cursor
-  'impl
-    (lambda (editor)
-      (dict-lookup-or-crash 'cursor (type-tag-get editor-tag editor))))
-
-(define editor-shadow-cursor-column
-  'impl
-    (lambda (editor)
-      (dict-lookup-or-crash
-        'shadow-cursor-column
-        (type-tag-get editor-tag editor))))
-
-(define editor-text
-  'impl
-    (lambda (editor)
-      (dict-lookup-or-crash 'text (type-tag-get editor-tag editor))))
-
-(define editor-line-count
-  'impl
-    (lambda (editor)
-      (dict-lookup-or-crash 'line-count (type-tag-get editor-tag editor))))
-
-(define editor-set-viewport-row
-  'impl
-    (lambda (viewport-row editor)
-      (editor-modify-viewport-row (lambda (_) viewport-row) editor)))
-
-(define editor-set-cursor
-  'impl
-    (lambda (cursor editor)
-      (editor-modify-cursor (lambda (_) cursor) editor)))
-
-(define editor-set-shadow-cursor-column
-  'impl
-    (lambda (shadow-cursor-column editor)
-      (editor-modify-shadow-cursor-column
-        (lambda (_) shadow-cursor-column)
-        editor)))
-
-(define editor-set-text
-  'impl
-    (lambda (text editor)
-      (editor-modify-text (lambda (_) text) editor)))
-
-(define editor-set-line-count
-  'impl
-    (lambda (count editor)
-      (editor-modify-line-count (lambda (_) count) editor)))
-
-(define editor-modify-viewport-row
-  'impl
-    (lambda (f editor)
-      (type-tag-add
-        editor-tag
-        (dict-update 'viewport-row f (type-tag-get editor-tag editor)))))
-
-(define editor-modify-cursor
-  'impl
-    (lambda (f editor)
-      (type-tag-add
-        editor-tag
-        (dict-update 'cursor f (type-tag-get editor-tag editor)))))
-
-(define editor-modify-shadow-cursor-column
-  'impl
-    (lambda (f editor)
-      (type-tag-add
-        editor-tag
-        (dict-update
-          'shadow-cursor-column
-          f
-          (type-tag-get editor-tag editor)))))
-
-(define editor-modify-text
-  'impl
-    (lambda (f editor)
-      (type-tag-add
-        editor-tag
-        (dict-update 'text f (type-tag-get editor-tag editor)))))
-
-(define editor-modify-line-count
-  'impl
-    (lambda (f editor)
-      (type-tag-add
-        editor-tag
-        (dict-update 'line-count f (type-tag-get editor-tag editor)))))
-
-(define editor-tag
-  'impl
-    'editor-tag)
+(define-struct editor (viewport-row cursor shadow-cursor-column text line-count))
 
 ; ------------------------------------------------------------------------------
 ; text
@@ -1173,6 +1022,130 @@
           (cadr str-and-remaining)))))
 
 ; ------------------------------------------------------------------------------
+; struct macro
+
+(define-macro define-struct
+  'impl
+    (lambda (sexp)
+      (let
+        ((struct-name (car sexp))
+         (tag-name (struct-tag-name struct-name))
+         (fields (cadr sexp)))
+        (cons
+          (struct-tag tag-name)
+          (list-flatmap
+            (lambda (field-name)
+              (field->methods struct-name tag-name field-name))
+            fields)))))
+
+(define field->methods
+  'impl
+    (lambda (struct-name tag-name field-name)
+      (list
+        (struct-get struct-name tag-name field-name)
+        (struct-modify struct-name tag-name field-name)
+        (struct-set struct-name field-name))))
+
+; Eg:
+;
+; (define store-display
+;   'impl
+;     (lambda (store)
+;       (dict-lookup-or-crash 'display (type-tag-get store-tag store))))
+;
+(define struct-get
+  'impl
+    (lambda (struct-name struct-tag field-name)
+      (quasiquote
+        (define (unquote (sym-str-sym struct-name "-" field-name))
+          'impl
+            (lambda ((unquote struct-name))
+              (dict-lookup-or-crash
+                '(unquote field-name)
+                (type-tag-get
+                  (unquote struct-tag)
+                  (unquote struct-name))))))))
+
+; Eg:
+;
+; (define store-set-display
+;   'impl
+;     (lambda (display store)
+;       (store-modify-display (lambda (_) display) store)))
+;
+(define struct-set
+  'impl
+    (lambda (struct-name field-name)
+      (quasiquote
+        (define (unquote (sym-str-sym struct-name "-set-" field-name))
+          'impl
+            (lambda ((unquote field-name) (unquote struct-name))
+              ((unquote (sym-str-sym struct-name "-modify-" field-name))
+                (lambda (_) (unquote field-name))
+                (unquote struct-name)))))))
+
+; Eg:
+;
+; (define store-modify-display
+;   'impl
+;     (lambda (f store)
+;       (type-tag-add
+;         store-tag
+;         (dict-update 'display f (type-tag-get store-tag store)))))
+;
+(define struct-modify
+  'impl
+    (lambda (struct-name tag-name field-name)
+      (quasiquote
+        (define (unquote (sym-str-sym struct-name "-modify-" field-name))
+          'impl
+            (lambda (f (unquote struct-name))
+              (type-tag-add
+                (unquote tag-name)
+                (dict-update
+                  '(unquote field-name)
+                  f
+                  (type-tag-get
+                    (unquote tag-name)
+                    (unquote struct-name)))))))))
+
+; Eg:
+;
+; (define editor-tag
+;   'impl
+;     'editor-tag)
+;
+(define struct-tag
+  'impl
+    (lambda (tag-name)
+      (quasiquote
+        (define (unquote tag-name)
+          'impl
+          '(unquote tag-name)))))
+
+(define sym-str-sym
+  'examples
+    (
+      (sym-str-sym 'a "b" 'c) abc
+    )
+  'impl
+    (lambda (sym1 str sym2)
+      (codepoints->symbol
+        (list-concat
+          (list
+            (symbol->codepoints sym1)
+            (string->list str)
+            (symbol->codepoints sym2))))))
+
+(define struct-tag-name
+  'impl
+    (lambda (struct-name)
+      (codepoints->symbol
+        (list-append
+          (symbol->codepoints struct-name)
+          (string->list "-tag")))))
+
+; ------------------------------------------------------------------------------
 ; string
 
 (define abc
@@ -1406,17 +1379,19 @@
 ; ------------------------------------------------------------------------------
 ; example tests
 
-; Takes as an argument a list of `define`s.
+; Takes as an argument a list of `define`s, `define-macro`s, etc.
 ;
-; Extract the `'examples` from them, and returns an expression that,
-; if evaluated in the context of all the other `define`s, runs those examples.
-(define defines->example-tests
+; Extract the `'examples` from the `define` and `define-macro`s only.
+; Returns an expression that,
+; if evaluated in the context of all the other `define`s,
+; runs those examples.
+(define definitions->example-tests
   'examples
     (
-      (defines->example-tests '((define one 'impl 1)))
+      (definitions->example-tests '((define one 'impl 1)))
         (begin)
 
-      (defines->example-tests '((define one 'examples (one 1) 'impl 1)))
+      (definitions->example-tests '((define one 'examples (one 1) 'impl 1)))
         (begin (assert-eq one (quote 1)))
     )
   'impl
@@ -1424,7 +1399,15 @@
       (cons 'begin
         (list-map
           example-to-runnable
-          (list-flatmap flat-alist-to-examples defines)))))
+          (list-flatmap flat-alist-to-examples
+            (list-filter
+              (lambda (def)
+                (let
+                  ((name (car def)))
+                  (or
+                    (eq? name 'define)
+                    (eq? name 'define-macro))))
+              defines))))))
 
 (define flat-alist-to-examples
   'examples
@@ -1663,6 +1646,35 @@
     )
   'impl
     'stub)
+
+; ------------------------------------------------------------------------------
+; quasiquote
+
+(define test-quasiquote
+  'examples
+    (
+      test-quasiquote (a (b c) 2 d)
+    )
+  'impl
+    (quasiquote (a (b c) (unquote (+ 1 1)) d)))
+
+(define-macro quasiquote
+  'impl
+    (lambda (starting-sexp)
+      (let
+        ((go
+          (lambda (sexp)
+            (if
+              (pair? sexp)
+              (if
+                (eq? (car sexp) 'unquote)
+                (cadr sexp)
+                (list
+                  'cons
+                  (go (car sexp))
+                  (go (cdr sexp))))
+              (list 'quote sexp)))))
+        (go (one-arg starting-sexp)))))
 
 ; ------------------------------------------------------------------------------
 ; test case
@@ -2054,13 +2066,22 @@
     )
   'impl
     (lambda (pred? xs)
+      (list-filter (lambda (x) (not (pred? x))) xs)))
+
+(define list-filter
+  'examples
+    (
+      (list-filter nat? '(-1 2 -3 4)) (2 4)
+    )
+  'impl
+    (lambda (pred? xs)
       (list-reverse
         (list-foldl
           (lambda (acc x)
             (if
               (pred? x)
-              acc
-              (cons x acc)))
+              (cons x acc)
+              acc))
           '()
           xs))))
 
@@ -2610,6 +2631,17 @@
           (cadr args)
           ''f))))
 
+(define one-arg
+  'impl
+  (lambda (sexps)
+    (if
+      (pair? sexps)
+      (if
+        (list-empty? (cdr sexps))
+        (car sexps)
+        (crash 'one-arg-received-multiple))
+      (crash 'one-arg-received-none))))
+
 (define two-args
   'impl
   (lambda (sexps)
@@ -2811,7 +2843,22 @@
         (if
           (define-macro? sexp)
           (process-define-macro macrotable acc sexp)
-          (crash 'process-top-level-definition))))))
+          (if
+            (untagged-alist-key? (car sexp) macrotable)
+            (process-top-level-macro
+              macrotable
+              acc
+              (untagged-alist-get-or-crash (car sexp) macrotable)
+              sexp)
+            (crash 'process-top-level-definition)))))))
+
+  (process-top-level-macro (lambda (macrotable acc macro-function sexp)
+    (let
+      ((generated-definitions (macro-function (cdr sexp))))
+      (list-foldr
+        process-top-level-definition
+        (list macrotable acc)
+        generated-definitions))))
 
   (definition->name-and-macroexpanded-impl-body (lambda (macrotable sexp)
     (let
@@ -2833,7 +2880,10 @@
        ; Can't do `(f (eval (to-let acc body)))` here,
        ; because then the macro wouldn't be able to recursively refer to itself.
        ; For an example of this see `cond`.
-       (f (eval (to-let new-acc name))))
+       ;
+       ; Also TODO: these list-reverses are getting crazy,
+       ; should build into `to-let`?
+       (f (eval (to-let (list-reverse new-acc) name))))
       (list
         (cons (list name f) macrotable)
         new-acc))))
@@ -2882,7 +2932,7 @@
        ; Note that `midnight-plus-macros` is the original source exactly,
        ; no macroexpansion or anything like that.
        (test-generating-expr
-         (list 'defines->example-tests (list 'quote midnight-plus-macros)))
+         (list 'definitions->example-tests (list 'quote midnight-plus-macros)))
 
        ; Eval the above expression to get the tests
        (tests

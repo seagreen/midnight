@@ -16,12 +16,7 @@ export const _editorStringToInput = left => right => jsStr => {
 }
 
 const stringToLinkedListOfCodepoints = str => {
-  console.time('starting-string');
-  const a = arrayToLinkedList(
-    Array.from(str).map(char => char.codePointAt(0))
-  );
-  console.timeEnd('starting-string');
-  return a;
+  return arrayToLinkedList(Array.from(str).map(char => char.codePointAt(0)));
 }
 
 // TODO: questionable and duplicate

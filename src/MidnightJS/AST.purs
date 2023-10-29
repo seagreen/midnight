@@ -162,7 +162,7 @@ serialize =
       "return"
 
     Throw e ->
-      "throw " <> e
+      "(() => {throw new Error(" <> e <> ");})()"
 
 serializeCommaSeparated :: List AST -> String
 serializeCommaSeparated xs =

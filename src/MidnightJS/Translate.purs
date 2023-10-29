@@ -50,6 +50,7 @@ midnightToJsMap =
     , Tuple "symbol?" "isSymbol"
     , Tuple "symbol-eq?" "isSymbolEq"
     , Tuple "codepoints->symbol" "codepointsToSymbol"
+    , Tuple "symbol->codepoints" "symbolToCodepoints"
 
     -- Int
     , Tuple "int?" "isInt"
