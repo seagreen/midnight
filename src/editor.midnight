@@ -654,7 +654,10 @@
 ; ------------------------------------------------------------------------------
 ; grid-posn
 ;
-; (struct grid-posn (column row))
+; Not deriving this for now because the outer system
+; expects it untagged, but this is what it would look like:
+;
+; (derive-struct grid-posn (column row))
 
 (define column-and-row-to-grid-posn
   'impl
@@ -702,12 +705,7 @@
     'grid-posn-tag)
 
 ; ------------------------------------------------------------------------------
-; midnight parser
-;
-; This is the "faster" parser which combines lexing and parsing.
-;
-; There's also a reference implementation in the next section
-; that keeps them separate.
+; parse and eval
 
 (define eval-string
   'examples
@@ -723,6 +721,9 @@
 
         ('ok sexp)
           (eval sexp))))
+
+; ------------------------------------------------------------------------------
+; midnight parser
 
 (define sexp-parse
   'examples
@@ -822,6 +823,9 @@
                       (cadr sexp-and-remaining))))))))
         (loop '() tokens))))
 
+; ------------------------------------------------------------------------------
+; midnight lexer
+
 (define sexp-tokenize
   'examples
     (
@@ -900,24 +904,6 @@
         (lambda (x) (/= x 10)) ; `\n`, codepoint-newline
         xs)))
 
-; TODO: should this check for "?
-(define sexp-codepoint-used-for-syntax
-  'examples
-    (
-      (sexp-codepoint-used-for-syntax codepoint-newline) t
-      (sexp-codepoint-used-for-syntax 97) f
-    )
-  'impl
-    (lambda (c)
-      (cond
-        ((= c 32) 't) ; ` `, codepoint-space
-        ((= c 40) 't) ; `(`, codepoint-begin-paren
-        ((= c 41) 't) ; `)`, codepoint-end-paren
-        ((= c 39) 't) ; `'`, codepoint-single-quote
-        ((= c 10) 't) ; `\n`, codepoint-newline
-        ((= c 59) 't) ; `;`, codepoint-colon
-        ('t 'f))))
-
 ; Assumes a nonempty input whose first token is atom-valid.
 (define sexp-symbol-or-int
   'examples
@@ -940,6 +926,24 @@
               (string-to-int-or-crash (type-tag-add string-tag taken)))
             (list 'token-symbol (codepoints->symbol taken)))
           remaining))))
+
+; TODO: should this check for "?
+(define sexp-codepoint-used-for-syntax
+  'examples
+    (
+      (sexp-codepoint-used-for-syntax codepoint-newline) t
+      (sexp-codepoint-used-for-syntax 97) f
+    )
+  'impl
+    (lambda (c)
+      (cond
+        ((= c 32) 't) ; ` `, codepoint-space
+        ((= c 40) 't) ; `(`, codepoint-begin-paren
+        ((= c 41) 't) ; `)`, codepoint-end-paren
+        ((= c 39) 't) ; `'`, codepoint-single-quote
+        ((= c 10) 't) ; `\n`, codepoint-newline
+        ((= c 59) 't) ; `;`, codepoint-colon
+        ('t 'f))))
 
 ; Assumes a nonempty argument.
 (define sexp-int-sequence?
