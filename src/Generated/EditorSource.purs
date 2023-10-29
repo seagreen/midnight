@@ -173,7 +173,10 @@ string =
               (f arg))))))
 
 ; ------------------------------------------------------------------------------
-; store helpers
+; store
+;
+; Note that the outer system passes and expects an untagged alist,
+; so the store-tag and dict-tag have to be added/remove at the boundary.
 
 (define store-update-display
   'impl
@@ -191,21 +194,6 @@ string =
   'impl
     (lambda (store)
       (type-tag-get dict-tag (type-tag-get store-tag store))))
-
-; ------------------------------------------------------------------------------
-; store
-;
-; Note that this is stored with the store and alist tags stripped off,
-; the outer system expects a bare alist.
-
-(define store-new
-  'impl
-    (lambda (display main-sexp editor)
-      (type-tag-add
-        store-tag
-        (dict-insert 'display display
-          (dict-insert 'main-sexp main-sexp
-            (dict-singleton 'editor editor))))))
 
 (define-struct store (display main-sexp editor))
 
@@ -524,7 +512,7 @@ string =
           ed))))
 
 ; ------------------------------------------------------------------------------
-; editor helpers
+; editor
 
 (define current-line-length
   'impl
@@ -538,28 +526,24 @@ string =
         (grid-posn-row (editor-cursor ed))
         (editor-text ed))))
 
-; ------------------------------------------------------------------------------
-; editor
-
 (define string->editor
   'impl
     (lambda (str)
-      (editor-new
+      (editor-new-minus-derived
         1
         (column-and-row-to-grid-posn 1 1)
         none
         (string->text str))))
 
-(define editor-new
+(define editor-new-minus-derived
   'impl
     (lambda (viewport-row cursor shadow-cursor-column text)
-      (type-tag-add
-        editor-tag
-        (dict-insert 'viewport-row viewport-row
-          (dict-insert 'cursor cursor
-            (dict-insert 'shadow-cursor-column shadow-cursor-column
-              (dict-insert 'text text
-                (dict-singleton 'line-count (list-length text)))))))))
+      (editor-new
+        viewport-row
+        cursor
+        shadow-cursor-column
+        text
+        (list-length text))))
 
 (define-struct editor (viewport-row cursor shadow-cursor-column text line-count))
 
@@ -1044,14 +1028,65 @@ string =
     (lambda (sexp)
       (let
         ((struct-name (car sexp))
-         (tag-name (struct-tag-name struct-name))
+         (tag-name (sym-append-str struct-name "-tag"))
          (fields (cadr sexp)))
         (cons
           (struct-tag tag-name)
-          (list-flatmap
-            (lambda (field-name)
-              (field->methods struct-name tag-name field-name))
-            fields)))))
+          (cons
+            (struct-new struct-name tag-name fields)
+            (list-flatmap
+              (lambda (field-name)
+                (field->methods struct-name tag-name field-name))
+              fields))))))
+
+; Eg:
+;
+; (define store-new
+;   'impl
+;     (lambda (display main-sexp editor)
+;       (type-tag-add
+;         store-tag
+;         (type-tag-add
+;           dict-tag
+;           (list
+;             (list 'display display)
+;             (list 'main-sexp main-sexp)
+;             (list 'editor editor))))))
+;
+(define struct-new
+  'examples
+    (
+      (struct-new 'hi 'hi-tag '(x y))
+        (define hi-new
+          'impl
+            (lambda (x y)
+              (type-tag-add
+                hi-tag
+                (type-tag-add
+                  dict-tag
+                  (list
+                    (list 'x x)
+                    (list 'y y))))))
+    )
+  'impl
+    (lambda (struct-name tag-name fields)
+      (quasiquote
+        (define (unquote (sym-append-str struct-name "-new"))
+          'impl
+            (lambda (unquote fields)
+              (type-tag-add
+                (unquote tag-name)
+                (type-tag-add
+                  dict-tag
+                  (unquote
+                    (cons 'list
+                      (list-map
+                        (lambda (field-name)
+                          (list
+                            'list
+                            (list 'quote field-name)
+                            field-name))
+                        fields))))))))))
 
 (define field->methods
   'impl
@@ -1152,13 +1187,13 @@ string =
             (string->list str)
             (symbol->codepoints sym2))))))
 
-(define struct-tag-name
+(define sym-append-str
   'impl
-    (lambda (struct-name)
+    (lambda (sym str)
       (codepoints->symbol
         (list-append
-          (symbol->codepoints struct-name)
-          (string->list "-tag")))))
+          (symbol->codepoints sym)
+          (string->list str)))))
 
 ; ------------------------------------------------------------------------------
 ; string
@@ -1450,7 +1485,7 @@ string =
                   (crash (list 'flat-alist-to-examples 'example-list-not-even))
 
                 ('ok examples)
-                  (dict->alist examples))))))
+                  (dict->untagged-alist examples))))))
 
 (define example-to-runnable
   'examples
@@ -1555,7 +1590,7 @@ string =
                 (loop (dict-insert (car xs) (cadr xs) dict) (cdr (cdr xs))))))))
         (loop dict-empty xs))))
 
-(define dict->alist
+(define dict->untagged-alist
   'impl
     (lambda (dict)
       (type-tag-get dict-tag dict)))
