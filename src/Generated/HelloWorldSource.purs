@@ -18,11 +18,18 @@ string =
     (lambda xs
       xs))
 
-  (example-display
-    (list
-      (list 'cursor-position 0 0)
-      (list 'text (list "hello-world")))))
+   (example-display
+     (list
+       (list 'cursor-position 1 1)
+       (list 'text (list "hello-world"))))
 
-  (lambda (system-input)
-    (list 'output-normal example-display 'store 'ephem)))
+   (alist-singleton
+     (lambda (k v)
+       (cons (list k v) '()))))
+
+  (lambda (_system-input)
+    (list
+      'output-store-and-ephem
+      (alist-singleton 'display example-display)
+      'ephem)))
 """

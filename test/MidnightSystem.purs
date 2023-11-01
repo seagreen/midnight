@@ -10,6 +10,7 @@ import Data.Newtype (unwrap)
 import EditorHuge as EditorHuge
 import Effect.Class (liftEffect)
 import Generated.EditorSource as EditorSource
+import Generated.HelloWorldSource as HelloWorldSource
 import Lib.Moore as Moore
 import MidnightJS as MidnightJS
 import MidnightLang.Sexp (Sexp)
@@ -85,30 +86,13 @@ spec = do
                         )
                       pure unit
 
-    {- TODO: re-enable?
-
-  describe "starts-up-and-accepts-abc-input" do
-    it "works" do
-      case MidnightJS.evalToForeign EditorSource.string of
-        Left e ->
+    it "hello world example works" do
+      case MidnightSystem.moore HelloWorldSource.string of
+        Left (StartupFailure e) ->
           fail e
 
-        Right f -> do
-          let
-            startingInput =
-              """'(system-input-start-with-editor-contents (string-tag (97 98 99)))"""
-          case MidnightJS.evalToForeign startingInput of
-            Left e ->
-              fail e
-
-            Right jsVal ->
-              case MidnightJS.applyClosure f [ jsVal ] of
-                Left e ->
-                  fail e
-
-                Right _ ->
-                  pure unit
--}
+        Right _ ->
+          pure unit
 
     it "initial editor outputs an image successfully" do
       case MidnightSystem.moore EditorSource.string of
