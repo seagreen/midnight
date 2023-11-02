@@ -3,12 +3,20 @@ module MidnightSystem.Util where
 import Prelude
 
 import Data.Bifunctor (lmap)
-import Data.Either (Either)
+import Data.Either (Either(..))
 import Foreign (Foreign, unsafeFromForeign)
 import MidnightJS as MidnightJS
 import MidnightJS.JsonToMidnightSexp (jsonToMidnightSexp)
 import MidnightLang.Sexp (Sexp)
 import MidnightLang.Sexp as Sexp
+
+verifyConstructor :: String -> Foreign -> Either String Unit
+verifyConstructor expected output = do
+  val <- getFirst output
+  sexp <- foreignToSexp val
+  when
+    (sexp /= Sexp.Symbol expected)
+    (Left ("expected constructor " <> expected <> " but got " <> show sexp))
 
 getFirst :: Foreign -> Either String Foreign
 getFirst val =

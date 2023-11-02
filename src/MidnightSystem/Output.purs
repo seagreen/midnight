@@ -12,7 +12,7 @@ import Foreign (Foreign)
 import MidnightLang.Sexp (Sexp)
 import MidnightSystem.Display (Display)
 import MidnightSystem.Display as Display
-import MidnightSystem.Util (applyStringToForeign, foreignToSexp, getSecond, getThird)
+import MidnightSystem.Util (foreignToSexp, getSecond, getThird, verifyConstructor)
 
 -- TODO: the word "step" is used for either 3 kinds of things in this codebase,
 -- need to make it less confusing
@@ -41,7 +41,7 @@ data StepOutput = StepNormal { displaySexp :: Sexp, display :: Display, store ::
 
 jsToOutput :: Foreign -> Either String StepOutput
 jsToOutput outputForeign = do
-  verifyConstructor outputForeign
+  verifyConstructor "output-store-and-ephem" outputForeign
 
   store <- getSecond outputForeign
 
@@ -52,28 +52,3 @@ jsToOutput outputForeign = do
   ephem <- getThird outputForeign
 
   pure (StepNormal { displaySexp, display, store, ephem })
-
-verifyConstructor :: Foreign -> Either String Unit
-verifyConstructor output =
-  void (applyStringToForeign src output)
-  where
-  src :: String
-  src =
-    """
-(let
-  (
-
-(list
-  (lambda xs
-    xs))
-
-)
-
-(lambda (output)
-  (if
-    (symbol-eq? 'output-store-and-ephem (car output))
-      '()
-      (crash (list 'verify-constructor 'expected-output-store-and-ephem 'but-got (car output)))))
-
-)
-"""
