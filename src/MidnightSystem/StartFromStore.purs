@@ -30,27 +30,23 @@ startFromStoreText storeSexpString = do
   --
   -- storeForeign <- MidnightJS.evalToForeign ("(quote " <> storeSexpString <> ")") -- NOTE: hack
 
-  storeForeign <- sexpStrToJson storeSexpString
+  store <- sexpStrToJson storeSexpString
 
-  displayForeign <-
-    lmap
-      (\err -> "Display.fromStore: " <> err)
-      (applyStringToForeign Display.fromStore storeForeign)
-
+  displayForeign <- Display.fromStore store
   displaySexp <- lmap (\err -> "foreign to display sexp: " <> err) (foreignToSexp displayForeign)
   display <- lmap (\err -> "parse display sexp: " <> err) (Display.parse displaySexp)
 
-  storeToEphemInput <- storeToInput storeForeign
+  storeToEphemInput <- storeToInput store
 
-  mainSexpForeign <- mainSexpFromStore storeForeign
+  mainSexpForeign <- mainSexpFromStore store
 
   mainEvaled <- applyStringToForeign "eval" mainSexpForeign
 
   ephem <- MidnightJS.applyClosure mainEvaled [ storeToEphemInput ]
   pure
     ( Moore
-        { output: OutputSuccess { displaySexp, display, store: storeForeign, ephem }
-        , step: stepper { step: mainEvaled, store: storeForeign, ephem }
+        { output: OutputSuccess { displaySexp, display, store, ephem }
+        , step: stepper { step: mainEvaled, store, ephem }
         }
     )
 

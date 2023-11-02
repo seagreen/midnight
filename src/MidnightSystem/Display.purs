@@ -8,13 +8,16 @@ import Prelude
 
 import Data.Array (fromFoldable)
 import Data.Array as Array
+import Data.Bifunctor (lmap)
 import Data.Either (Either(..))
 import Data.List ((:))
 import Data.List as PsList
 import Data.String as String
 import Data.Traversable (for)
+import Foreign (Foreign)
 import MidnightLang.Sexp (Sexp)
 import MidnightLang.Sexp as Sexp
+import MidnightSystem.Util (applyStringToForeign)
 
 displayWidth :: Int
 displayWidth =
@@ -64,8 +67,14 @@ clipToFit xs =
 
 -- * From store
 
-fromStore :: String
-fromStore =
+fromStore :: Foreign -> Either String Foreign
+fromStore store =
+  lmap
+    (\err -> "Display.fromStore: " <> err)
+    (applyStringToForeign fromStoreString store)
+
+fromStoreString :: String
+fromStoreString =
   """
 (let
   (

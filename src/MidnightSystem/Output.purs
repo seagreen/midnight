@@ -44,11 +44,8 @@ jsToOutput outputForeign = do
   verifyConstructor outputForeign
 
   store <- getSecond outputForeign
-  displayForeign <-
-    lmap
-      (\err -> "displayFromStore: " <> err)
-      (applyStringToForeign Display.fromStore store)
 
+  displayForeign <- Display.fromStore store
   displaySexp <- lmap (\err -> "foreign to display sexp: " <> err) (foreignToSexp displayForeign)
   display <- lmap (\err -> "parse display sexp: " <> err) (Display.parse displaySexp)
 
