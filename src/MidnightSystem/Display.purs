@@ -32,6 +32,8 @@ type Display =
   , text :: Array String
   }
 
+-- * Parse
+
 parse :: Sexp -> Either String Display
 parse =
   case _ of
