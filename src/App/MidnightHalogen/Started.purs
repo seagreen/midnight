@@ -24,8 +24,8 @@ import MidnightSystem as MidnightSystem
 import MidnightSystem.Display (Display)
 import MidnightSystem.Keyboard (Keyboard)
 import MidnightSystem.Output (Output(..))
-import MidnightSystem.Output as Output
 import MidnightSystem.StartFromStore (startFromStoreText)
+import MidnightSystem.Util (foreignToSexp, foreignToSexpAllowClosures)
 import Web.Event.Event as E
 import Web.HTML as Web.Html
 import Web.HTML.HTMLDocument as HtmlDocument
@@ -301,7 +301,7 @@ renderStore output mStoreTabText =
         HH.p_ [ HH.text err ]
 
       OutputSuccess { store } ->
-        case Output.foreignToSexp store of
+        case foreignToSexp store of
           Left e ->
             HH.p_ [ HH.text ("Couldn't process store: " <> e) ]
 
@@ -317,7 +317,7 @@ renderEphem output =
           HH.p_ [ HH.text err ]
 
         OutputSuccess { ephem } ->
-          case Output.foreignToSexpAllowClosures ephem of
+          case foreignToSexpAllowClosures ephem of
             Left e ->
               HH.p_ [ HH.text ("Couldn't process ephem: " <> e) ]
 

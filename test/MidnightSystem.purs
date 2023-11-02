@@ -19,8 +19,8 @@ import MidnightSystem (StartupFailure(..))
 import MidnightSystem as MidnightSystem
 import MidnightSystem.Keyboard as Keyboard
 import MidnightSystem.Output (Output(..))
-import MidnightSystem.Output as Output
 import MidnightSystem.StartFromStore (startFromStoreText)
+import MidnightSystem.Util (foreignToSexp)
 import Node.Encoding (Encoding(..))
 import Node.FS.Sync (writeTextFile)
 import Test.Spec (Spec, describe, it)
@@ -164,7 +164,7 @@ spec = do
               fail ("OutputCrash in startingMoore: " <> e)
 
             OutputSuccess output ->
-              case Output.foreignToSexp output.store of
+              case foreignToSexp output.store of
                 Left e ->
                   fail ("foreignToSexp failure: " <> e)
 
@@ -197,7 +197,7 @@ spec = do
               fail ("OutputCrash in startingMoore: " <> e)
 
             OutputSuccess output ->
-              case Output.foreignToSexp output.store of
+              case foreignToSexp output.store of
                 Left e ->
                   fail ("foreignToSexp failure: " <> e)
 

@@ -15,11 +15,11 @@ import MidnightJS as MidnightJS
 import MidnightJS.Foreign as Foreign
 import MidnightJS.JsonToMidnightSexp (jsonToMidnightSexp)
 import MidnightJS.JsonToMidnightSexp as JsonToMidnightSexp
-import MidnightJS.Translate as Translate
 import MidnightLang.Sexp (Sexp)
 import MidnightLang.Sexp as Sexp
 import MidnightSystem.Display (Display)
 import MidnightSystem.Display as Display
+import MidnightSystem.Util (applyStringToForeign, foreignToSexp, getSecond, getThird)
 
 -- TODO: the word "step" is used for either 3 kinds of things in this codebase,
 -- need to make it less confusing
@@ -62,19 +62,6 @@ jsToOutput outputForeign = do
   ephem <- getThird outputForeign
 
   pure (StepNormal { displaySexp, display, store, ephem })
-
-foreignToSexp :: Foreign -> Either String Sexp
-foreignToSexp jsVal = do
-  jsonToMidnightSexp (unsafeFromForeign jsVal)
-
-foreignToSexpAllowClosures :: Foreign -> Either String Sexp
-foreignToSexpAllowClosures jsVal = do
-  pure (Sexp.Symbol "TODO TODO")
-
--- genericSexp <- GenericSexp.parse (Foreign.String jsVal)
--- crash "here"
-
--- Translate.biwaSexpToMidnightSexp biwaSexp
 
 verifyConstructor :: Foreign -> Either String Unit
 verifyConstructor output =
@@ -128,26 +115,3 @@ displayFromStore =
 
 )
 """
-
-getFirst :: Foreign -> Either String Foreign
-getFirst val =
-  lmap
-    (\err -> "getFirst: " <> err)
-    (applyStringToForeign "(lambda (x) (car x))" val)
-
-getSecond :: Foreign -> Either String Foreign
-getSecond jsVal =
-  lmap
-    (\err -> "getSecond: " <> err)
-    (applyStringToForeign "(lambda (x) (car (cdr x)))" jsVal)
-
-getThird :: Foreign -> Either String Foreign
-getThird jsVal =
-  lmap
-    (\err -> "getThird: " <> err)
-    (applyStringToForeign "(lambda (x) (car (cdr (cdr x))))" jsVal)
-
-applyStringToForeign :: String -> Foreign -> Either String Foreign
-applyStringToForeign str jsVal = do
-  f <- MidnightJS.evalToForeign str
-  MidnightJS.applyClosure f [ jsVal ]

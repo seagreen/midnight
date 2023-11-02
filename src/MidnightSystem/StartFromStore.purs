@@ -18,7 +18,8 @@ import MidnightLang.Sexp as Sexp
 import MidnightSystem (stepper)
 import MidnightSystem.Display as Display
 import MidnightSystem.Keyboard (Keyboard)
-import MidnightSystem.Output (Output(..), applyStringToForeign, displayFromStore, foreignToSexp)
+import MidnightSystem.Output (Output(..), displayFromStore)
+import MidnightSystem.Util (applyStringToForeign, foreignToSexp)
 
 startFromStoreText :: String -> Either String (Moore Keyboard Output)
 startFromStoreText storeSexpString = do
