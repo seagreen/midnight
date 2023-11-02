@@ -15,10 +15,10 @@ import Lib.Moore (Moore(..))
 import MidnightJS as MidnightJS
 import MidnightLang.Sexp (Sexp)
 import MidnightLang.Sexp as Sexp
-import MidnightSystem (stepper)
 import MidnightSystem.Display as Display
 import MidnightSystem.Keyboard (Keyboard)
 import MidnightSystem.Output (Output(..), displayFromStore)
+import MidnightSystem.Step (stepper)
 import MidnightSystem.Util (applyStringToForeign, foreignToSexp)
 
 startFromStoreText :: String -> Either String (Moore Keyboard Output)

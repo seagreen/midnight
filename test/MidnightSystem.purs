@@ -18,7 +18,6 @@ import MidnightLang.Sexp as Sexp
 import MidnightSystem as MidnightSystem
 import MidnightSystem.Keyboard as Keyboard
 import MidnightSystem.Output (Output(..))
-import MidnightSystem.StartFromStore (startFromStoreText)
 import MidnightSystem.Util (foreignToSexp)
 import Node.Encoding (Encoding(..))
 import Node.FS.Sync (writeTextFile)
@@ -168,7 +167,7 @@ spec = do
                   fail ("foreignToSexp failure: " <> e)
 
                 Right storeSexp ->
-                  case startFromStoreText (Sexp.prettyprintColsPrefer80 storeSexp) of
+                  case MidnightSystem.startFromStoreText (Sexp.prettyprintColsPrefer80 storeSexp) of
                     Left e ->
                       fail ("startFromStoreText failure: " <> e)
 
@@ -201,7 +200,7 @@ spec = do
                   fail ("foreignToSexp failure: " <> e)
 
                 Right storeSexp ->
-                  case startFromStoreText (Sexp.prettyprintColsPrefer80 storeSexp) of
+                  case MidnightSystem.startFromStoreText (Sexp.prettyprintColsPrefer80 storeSexp) of
                     Left e ->
                       fail ("startFromStoreText failure: " <> e)
 
