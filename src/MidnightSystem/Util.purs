@@ -3,23 +3,12 @@ module MidnightSystem.Util where
 import Prelude
 
 import Data.Bifunctor (lmap)
-import Data.Either (Either(..))
-import Data.Enum (toEnum)
-import Data.Maybe (Maybe(..))
-import Data.String as String
-import Data.String.CodePoints (CodePoint)
-import Data.Traversable (for)
+import Data.Either (Either)
 import Foreign (Foreign, unsafeFromForeign)
-import Lib.Sexp as GenericSexp
 import MidnightJS as MidnightJS
-import MidnightJS.Foreign as Foreign
 import MidnightJS.JsonToMidnightSexp (jsonToMidnightSexp)
-import MidnightJS.JsonToMidnightSexp as JsonToMidnightSexp
-import MidnightJS.Translate as Translate
 import MidnightLang.Sexp (Sexp)
 import MidnightLang.Sexp as Sexp
-import MidnightSystem.Display (Display)
-import MidnightSystem.Display as Display
 
 getFirst :: Foreign -> Either String Foreign
 getFirst val =

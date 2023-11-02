@@ -1,6 +1,6 @@
-module MidnightSystem.StartFromStore where
-
--- TODO: this depends on MidnightSystem, so we're flipped around
+module MidnightSystem.StartFromStore
+  ( startFromStoreText
+  ) where
 
 import Prelude
 

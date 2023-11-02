@@ -1,4 +1,6 @@
-module MidnightSystem.StartFromSource where
+module MidnightSystem.StartFromSource
+  ( startFromSource
+  ) where
 
 import Prelude
 

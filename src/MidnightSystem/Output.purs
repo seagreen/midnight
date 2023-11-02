@@ -1,4 +1,8 @@
-module MidnightSystem.Output where
+module MidnightSystem.Output
+  ( Output(..)
+  , StepOutput(..)
+  , jsToOutput
+  ) where
 
 import Prelude
 

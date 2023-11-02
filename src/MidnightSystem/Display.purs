@@ -1,4 +1,8 @@
-module MidnightSystem.Display where
+module MidnightSystem.Display
+  ( Display(..)
+  , parse
+  , fromStore
+  ) where
 
 import Prelude
 

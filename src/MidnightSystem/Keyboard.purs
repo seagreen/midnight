@@ -1,6 +1,11 @@
-module MidnightSystem.Keyboard where
-
-import Prelude
+module MidnightSystem.Keyboard
+  ( Keyboard
+  , Key(..)
+  , ArrowKey(..)
+  , noMeta
+  , toMidnightQuoted
+  , aKey
+  ) where
 
 import Data.Enum (fromEnum)
 import Data.List ((:))

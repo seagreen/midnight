@@ -1,4 +1,6 @@
-module MidnightSystem.Step where
+module MidnightSystem.Step
+  ( stepper
+  ) where
 
 import Prelude
 
