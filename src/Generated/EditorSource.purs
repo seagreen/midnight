@@ -668,56 +668,13 @@ string =
 
 ; ------------------------------------------------------------------------------
 ; grid-posn
-;
-; Not deriving this for now because the outer system
-; expects it untagged, but this is what it would look like:
-;
-; (derive-struct grid-posn (column row))
 
 (define column-and-row-to-grid-posn
   'impl
     (lambda (col row)
-      (type-tag-add
-        grid-posn-tag
-        (list col row))))
+      (grid-posn-new col row)))
 
-(define grid-posn-column
-  'impl
-    (lambda (grid-posn)
-      (car (type-tag-get grid-posn-tag grid-posn))))
-
-(define grid-posn-row
-  'impl
-    (lambda (grid-posn)
-      (cadr (type-tag-get grid-posn-tag grid-posn))))
-
-(define grid-posn-set-column
-  'impl
-    (lambda (col grid-posn)
-      (grid-posn-modify-column (lambda (_) col) grid-posn)))
-
-(define grid-posn-set-row
-  'impl
-    (lambda (row grid-posn)
-      (grid-posn-modify-row (lambda (_) row) grid-posn)))
-
-(define grid-posn-modify-column
-  'impl
-    (lambda (f grid-posn)
-      (let
-        ((col-and-row (type-tag-get grid-posn-tag grid-posn)))
-        (type-tag-add grid-posn-tag (list-map-first f col-and-row)))))
-
-(define grid-posn-modify-row
-  'impl
-    (lambda (f grid-posn)
-      (let
-        ((col-and-row (type-tag-get grid-posn-tag grid-posn)))
-        (type-tag-add grid-posn-tag (list-map-second f col-and-row)))))
-
-(define grid-posn-tag
-  'impl
-    'grid-posn-tag)
+(define-struct grid-posn (column row))
 
 ; ------------------------------------------------------------------------------
 ; parse and eval
