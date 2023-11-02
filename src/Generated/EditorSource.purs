@@ -82,7 +82,7 @@ string =
         ; copy/paste start, a store's been pasted in the "Store" tab,
         ; use it to rebuild the ephem.
         ('store-to-ephem untagged-store)
-          (dict-singleton 'step step-keypress); ephem
+          (alist-singleton 'step step-keypress); ephem
 
         ; Editor restarting itself with new code,
         ; not called by the runtime system but by the `restart`
@@ -104,7 +104,7 @@ string =
               display
               main-sexp
               starting-editor))
-          (dict-singleton 'step step-keypress))))) ; ephem
+          (alist-singleton 'step step-keypress))))) ; ephem
 
 (define parse-or-crash
   'impl
@@ -134,7 +134,7 @@ string =
 (define step-from-ephem
   'impl
     (lambda (store ephem k)
-      ((dict-lookup-or-crash 'step ephem) store ephem k)))
+      ((alist-lookup-or-crash 'step ephem) store ephem k)))
 
 (define start-with-store
   'impl
@@ -142,7 +142,7 @@ string =
       (list
         'output-store-and-ephem
         (store-remove-tags (store-update-display store))
-        (dict-singleton 'step step-keypress)))) ; as ephem
+        (alist-singleton 'step step-keypress)))) ; as ephem
 
 (define restart-key?
   'impl
@@ -176,7 +176,7 @@ string =
 ; store
 ;
 ; Note that the outer system passes and expects an untagged alist,
-; so the store-tag and dict-tag have to be added/remove at the boundary.
+; so the store-tag has to be added/remove at the boundary.
 
 (define store-update-display
   'impl
@@ -188,12 +188,12 @@ string =
 (define untagged-store->store
   'impl
     (lambda (untagged-store)
-      (type-tag-add store-tag (type-tag-add dict-tag untagged-store))))
+      (type-tag-add store-tag untagged-store)))
 
 (define store-remove-tags
   'impl
     (lambda (store)
-      (type-tag-get dict-tag (type-tag-get store-tag store))))
+      (type-tag-get store-tag store)))
 
 (define-struct store (display main-sexp editor))
 
@@ -1050,12 +1050,10 @@ string =
 ;     (lambda (display main-sexp editor)
 ;       (type-tag-add
 ;         store-tag
-;         (type-tag-add
-;           dict-tag
-;           (list
-;             (list 'display display)
-;             (list 'main-sexp main-sexp)
-;             (list 'editor editor))))))
+;         (list
+;           (list 'display display)
+;           (list 'main-sexp main-sexp)
+;           (list 'editor editor)))))
 ;
 (define struct-new
   'examples
@@ -1066,11 +1064,9 @@ string =
             (lambda (x y)
               (type-tag-add
                 hi-tag
-                (type-tag-add
-                  dict-tag
-                  (list
-                    (list 'x x)
-                    (list 'y y))))))
+                (list
+                  (list 'x x)
+                  (list 'y y)))))
     )
   'impl
     (lambda (struct-name tag-name fields)
@@ -1080,17 +1076,15 @@ string =
             (lambda (unquote fields)
               (type-tag-add
                 (unquote tag-name)
-                (type-tag-add
-                  dict-tag
-                  (unquote
-                    (cons 'list
-                      (list-map
-                        (lambda (field-name)
-                          (list
-                            'list
-                            (list 'quote field-name)
-                            field-name))
-                        fields))))))))))
+                (unquote
+                  (cons 'list
+                    (list-map
+                      (lambda (field-name)
+                        (list
+                          'list
+                          (list 'quote field-name)
+                          field-name))
+                      fields)))))))))
 
 (define field->methods
   'impl
@@ -1105,7 +1099,7 @@ string =
 ; (define store-display
 ;   'impl
 ;     (lambda (store)
-;       (dict-lookup-or-crash 'display (type-tag-get store-tag store))))
+;       (alist-lookup-or-crash 'display (type-tag-get store-tag store))))
 ;
 (define struct-get
   'impl
@@ -1114,7 +1108,7 @@ string =
         (define (unquote (sym-str-sym struct-name "-" field-name))
           'impl
             (lambda ((unquote struct-name))
-              (dict-lookup-or-crash
+              (alist-lookup-or-crash
                 '(unquote field-name)
                 (type-tag-get
                   (unquote struct-tag)
@@ -1145,7 +1139,7 @@ string =
 ;     (lambda (f store)
 ;       (type-tag-add
 ;         store-tag
-;         (dict-update 'display f (type-tag-get store-tag store)))))
+;         (alist-update 'display f (type-tag-get store-tag store)))))
 ;
 (define struct-modify
   'impl
@@ -1156,7 +1150,7 @@ string =
             (lambda (f (unquote struct-name))
               (type-tag-add
                 (unquote tag-name)
-                (dict-update
+                (alist-update
                   '(unquote field-name)
                   f
                   (type-tag-get
@@ -1474,22 +1468,22 @@ string =
     )
   'impl
     (lambda (defines)
-      (case (flat-alist-to-dict defines)
+      (case (flat-alist->normal-alist defines)
         ('error _)
           (crash (list 'flat-alist-to-examples 'define-list-not-even))
 
-        ('ok dict)
-          (case (dict-lookup ''examples dict)
+        ('ok alist)
+          (case (alist-lookup ''examples alist)
             ('error e)
               '()
 
             ('ok flat-examples)
-              (case (flat-alist-to-dict flat-examples)
+              (case (flat-alist->normal-alist flat-examples)
                 ('error e)
                   (crash (list 'flat-alist-to-examples 'example-list-not-even))
 
                 ('ok examples)
-                  (dict->untagged-alist examples))))))
+                  examples)))))
 
 (define example-to-runnable
   'examples
@@ -1505,41 +1499,64 @@ string =
         (list 'assert-eq expr quoted-expected))))
 
 ; ------------------------------------------------------------------------------
-; dict
+; flat alist
 
-(define dict-singleton
+(define flat-alist->normal-alist
   'examples
-    ( (dict-singleton 'a 1) (alist-tag ((a 1)))
+    (
+      ; Hmm, order matters here:
+      (flat-alist->normal-alist '(a x b y)) (ok ((b y) (a x)))
+      (flat-alist->normal-alist '())        (ok ())
+      (flat-alist->normal-alist '(a))       (error (flat-alist->normal-alist unpaired a))
+    )
+  'impl
+    (lambda (xs)
+      (let
+        ((loop
+          (lambda (alist xs)
+            (if
+              (list-empty? xs)
+              (ok alist)
+              (if
+                (list-empty? (cdr xs))
+                (error 'flat-alist->normal-alist 'unpaired (car xs))
+                (loop (alist-insert (car xs) (cadr xs) alist) (cdr (cdr xs))))))))
+        (loop alist-empty xs))))
+
+; ------------------------------------------------------------------------------
+; alist
+
+(define alist-singleton
+  'examples
+    ( (alist-singleton 'a 1) ((a 1))
     )
   'impl
     (lambda (k v)
-      (dict-insert k v dict-empty)))
+      (alist-insert k v alist-empty)))
 
-(define dict-insert
+(define alist-insert
   'examples
-    ( (dict-insert 'a 1 dict-empty) (alist-tag ((a 1)))
+    ( (alist-insert 'a 1 alist-empty) ((a 1))
     )
   'impl
     (lambda (k v alist)
-      (list-map-second
-        (lambda (xs)
-          (cons
-            (list k v)
-            (list-drop-where (lambda (x) (eq? (car x) k)) xs)))
-        alist)))
+      (cons
+        (list k v)
+        (list-drop-where (lambda (x) (eq? (car x) k)) alist))))
 
-(define dict-lookup-or-crash
+(define alist-lookup-or-crash
   'impl
     (lambda (k alist)
-      (case (dict-lookup k alist)
-        ('error e) (crash 'dict-lookup-or-crash)
+      (case (alist-lookup k alist)
+        ('error e) (crash (list 'alist-lookup-or-crash 'key-not-found k))
         ('ok a)    a)))
 
-(define dict-lookup
+(define alist-lookup
   'examples
     (
-      (dict-lookup 'a (dict-singleton 'a 1)) (ok 1)
-      (dict-lookup 'a dict-empty)            (error (dict-lookup a))
+      (alist-lookup 'a (alist-singleton 'a 1)) (ok 1)
+                                               ; TODO: use option instead of result?
+      (alist-lookup 'a alist-empty)            (error (alist-lookup-key-not-found a))
     )
   'impl
     (lambda (k alist)
@@ -1548,67 +1565,36 @@ string =
           (lambda (xs)
             (if
               (list-empty? xs)
-              (error 'dict-lookup k)
+              (error 'alist-lookup-key-not-found k)
               (let
                 ((pair (car xs)))
                 (if
                   (eq? k (car pair))
                   (ok (cadr pair))
                   (loop (cdr xs))))))))
-        (loop (type-tag-get dict-tag alist)))))
+        (loop alist))))
 
-(define dict-update
+(define alist-update
   'examples
     (
-      (dict-update 'a increment (dict-singleton 'a 1)) (alist-tag ((a 2)))
-      (dict-update 'a increment (dict-singleton 'b 1)) (alist-tag ((b 1)))
+      (alist-update 'a increment (alist-singleton 'a 1)) ((a 2))
+      (alist-update 'a increment (alist-singleton 'b 1)) ((b 1))
     )
   'impl
     (lambda (k f alist)
       (let
-        ((res (dict-lookup k alist)))
+        ((res (alist-lookup k alist)))
         (if
           (eq? (car res) 'error)
           alist
-          (dict-insert k (f (cadr res)) alist)))))
+          (alist-insert k (f (cadr res)) alist)))))
 
-(define flat-alist-to-dict
+(define alist-empty
   'examples
-    (
-      ; Hmm, order matters here:
-      (flat-alist-to-dict '(a x b y)) (ok (alist-tag ((b y) (a x))))
-      (flat-alist-to-dict '())        (ok (alist-tag ()))
-      (flat-alist-to-dict '(a))       (error (flat-alist-to-dict unpaired a))
+    ( alist-empty ()
     )
   'impl
-    (lambda (xs)
-      (let
-        ((loop
-          (lambda (dict xs)
-            (if
-              (list-empty? xs)
-              (ok dict)
-              (if
-                (list-empty? (cdr xs))
-                (error 'flat-alist-to-dict 'unpaired (car xs))
-                (loop (dict-insert (car xs) (cadr xs) dict) (cdr (cdr xs))))))))
-        (loop dict-empty xs))))
-
-(define dict->untagged-alist
-  'impl
-    (lambda (dict)
-      (type-tag-get dict-tag dict)))
-
-(define dict-empty
-  'examples
-    ( dict-empty (alist-tag ())
-    )
-  'impl
-    (type-tag-add dict-tag '()))
-
-(define dict-tag
-  'impl
-    'alist-tag)
+    '())
 
 ; ------------------------------------------------------------------------------
 ; type tag
@@ -2615,6 +2601,11 @@ string =
                 (eq? (cdr a) (cdr b))
                 'f)
               'f))))))
+
+(define trace-show
+  'impl
+    (lambda (label a)
+      (trace (list label a) a)))
 
 ; ------------------------------------------------------------------------------
 ; basic macros
