@@ -17,6 +17,8 @@ startFromSource midnightSrc = do
   -- Evaluate our Midnight source code, turning it into a JS closure.
   --
   -- (this is slow)
+  --
+  -- TODO: could cast instead?
   mainMidnight <-
     lmap
       (\err -> "Evaluation of source failed: " <> err)

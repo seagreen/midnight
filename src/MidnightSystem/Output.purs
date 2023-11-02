@@ -3,20 +3,9 @@ module MidnightSystem.Output where
 import Prelude
 
 import Data.Bifunctor (lmap)
-import Data.Either (Either(..))
-import Data.Enum (toEnum)
-import Data.Maybe (Maybe(..))
-import Data.String as String
-import Data.String.CodePoints (CodePoint)
-import Data.Traversable (for)
-import Foreign (Foreign, unsafeFromForeign)
-import Lib.Sexp as GenericSexp
-import MidnightJS as MidnightJS
-import MidnightJS.Foreign as Foreign
-import MidnightJS.JsonToMidnightSexp (jsonToMidnightSexp)
-import MidnightJS.JsonToMidnightSexp as JsonToMidnightSexp
+import Data.Either (Either)
+import Foreign (Foreign)
 import MidnightLang.Sexp (Sexp)
-import MidnightLang.Sexp as Sexp
 import MidnightSystem.Display (Display)
 import MidnightSystem.Display as Display
 import MidnightSystem.Util (applyStringToForeign, foreignToSexp, getSecond, getThird)
@@ -54,7 +43,7 @@ jsToOutput outputForeign = do
   displayForeign <-
     lmap
       (\err -> "displayFromStore: " <> err)
-      (applyStringToForeign displayFromStore store)
+      (applyStringToForeign Display.fromStore store)
 
   displaySexp <- lmap (\err -> "foreign to display sexp: " <> err) (foreignToSexp displayForeign)
   display <- lmap (\err -> "parse display sexp: " <> err) (Display.parse displaySexp)
@@ -84,34 +73,6 @@ verifyConstructor output =
     (symbol-eq? 'output-store-and-ephem (car output))
       '()
       (crash (list 'verify-constructor 'expected-output-store-and-ephem 'but-got (car output)))))
-
-)
-"""
-
-displayFromStore :: String
-displayFromStore =
-  """
-(let
-  (
-
-(list
-  (lambda xs
-    xs))
-
-(untagged-alist-get-symbol
-  (lambda (sym xs)
-    (if
-      (list-empty? xs)
-      (crash (list 'untagged-alist-get-symbol 'not-found sym))
-      (if
-        (symbol-eq? sym (car (car xs)))
-        (car (cdr (car xs)))
-        (untagged-alist-get-symbol sym (cdr xs))))))
-
-)
-
-(lambda (store)
-  (untagged-alist-get-symbol 'display store))
 
 )
 """

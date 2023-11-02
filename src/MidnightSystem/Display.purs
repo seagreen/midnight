@@ -57,3 +57,33 @@ parseText =
 clipToFit :: Array String -> Array String
 clipToFit xs =
   String.take displayWidth <$> Array.take displayHeight xs
+
+-- * From store
+
+fromStore :: String
+fromStore =
+  """
+(let
+  (
+
+(list
+  (lambda xs
+    xs))
+
+(untagged-alist-get-symbol
+  (lambda (sym xs)
+    (if
+      (list-empty? xs)
+      (crash (list 'untagged-alist-get-symbol 'not-found sym))
+      (if
+        (symbol-eq? sym (car (car xs)))
+        (car (cdr (car xs)))
+        (untagged-alist-get-symbol sym (cdr xs))))))
+
+)
+
+(lambda (store)
+  (untagged-alist-get-symbol 'display store))
+
+)
+"""

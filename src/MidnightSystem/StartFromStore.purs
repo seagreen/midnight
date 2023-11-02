@@ -17,7 +17,7 @@ import MidnightLang.Sexp (Sexp)
 import MidnightLang.Sexp as Sexp
 import MidnightSystem.Display as Display
 import MidnightSystem.Keyboard (Keyboard)
-import MidnightSystem.Output (Output(..), displayFromStore)
+import MidnightSystem.Output (Output(..))
 import MidnightSystem.Step (stepper)
 import MidnightSystem.Util (applyStringToForeign, foreignToSexp)
 
@@ -34,8 +34,8 @@ startFromStoreText storeSexpString = do
 
   displayForeign <-
     lmap
-      (\err -> "displayFromStore: " <> err)
-      (applyStringToForeign displayFromStore storeForeign)
+      (\err -> "Display.fromStore: " <> err)
+      (applyStringToForeign Display.fromStore storeForeign)
 
   displaySexp <- lmap (\err -> "foreign to display sexp: " <> err) (foreignToSexp displayForeign)
   display <- lmap (\err -> "parse display sexp: " <> err) (Display.parse displaySexp)
