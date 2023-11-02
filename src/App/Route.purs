@@ -10,8 +10,7 @@ import Routing.Duplex.Generic.Syntax ((/))
 import Slug (Slug)
 import Slug as Slug
 
-data Route
-  = Home
+data Route = Home
 
 derive instance Generic Route _
 derive instance Eq Route
