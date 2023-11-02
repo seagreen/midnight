@@ -1,4 +1,4 @@
-module MidnightSystem.StoreToMoore where
+module MidnightSystem.StartFromStore where
 
 -- TODO: this depends on MidnightSystem, so we're flipped around
 
@@ -20,8 +20,8 @@ import MidnightSystem.Display as Display
 import MidnightSystem.Keyboard (Keyboard)
 import MidnightSystem.Output (Output(..), applyStringToForeign, displayFromStore, foreignToSexp)
 
-storeToMoore :: String -> Either String (Moore Keyboard Output)
-storeToMoore storeSexpString = do
+startFromStoreText :: String -> Either String (Moore Keyboard Output)
+startFromStoreText storeSexpString = do
 
   -- Can't actually do this hack, get:
   --

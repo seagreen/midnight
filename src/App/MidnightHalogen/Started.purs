@@ -25,7 +25,7 @@ import MidnightSystem.Display (Display)
 import MidnightSystem.Keyboard (Keyboard)
 import MidnightSystem.Output (Output(..))
 import MidnightSystem.Output as Output
-import MidnightSystem.StoreToMoore (storeToMoore)
+import MidnightSystem.StartFromStore (startFromStoreText)
 import Web.Event.Event as E
 import Web.HTML as Web.Html
 import Web.HTML.HTMLDocument as HtmlDocument
@@ -151,7 +151,7 @@ component startingCode startingMoore =
           pure unit
 
         Just str ->
-          case storeToMoore str of
+          case startFromStoreText str of
             Left e ->
               H.modify_ (\s -> s { lastError = Just e })
 

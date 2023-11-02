@@ -20,7 +20,7 @@ import MidnightSystem as MidnightSystem
 import MidnightSystem.Keyboard as Keyboard
 import MidnightSystem.Output (Output(..))
 import MidnightSystem.Output as Output
-import MidnightSystem.StoreToMoore (storeToMoore)
+import MidnightSystem.StartFromStore (startFromStoreText)
 import Node.Encoding (Encoding(..))
 import Node.FS.Sync (writeTextFile)
 import Test.Spec (Spec, describe, it)
@@ -169,9 +169,9 @@ spec = do
                   fail ("foreignToSexp failure: " <> e)
 
                 Right storeSexp ->
-                  case storeToMoore (Sexp.prettyprintColsPrefer80 storeSexp) of
+                  case startFromStoreText (Sexp.prettyprintColsPrefer80 storeSexp) of
                     Left e ->
-                      fail ("storeToMoore failure: " <> e)
+                      fail ("startFromStoreText failure: " <> e)
 
                     Right moore ->
                       let
@@ -202,9 +202,9 @@ spec = do
                   fail ("foreignToSexp failure: " <> e)
 
                 Right storeSexp ->
-                  case storeToMoore (Sexp.prettyprintColsPrefer80 storeSexp) of
+                  case startFromStoreText (Sexp.prettyprintColsPrefer80 storeSexp) of
                     Left e ->
-                      fail ("storeToMoore failure: " <> e)
+                      fail ("startFromStoreText failure: " <> e)
 
                     Right moore ->
                       let
