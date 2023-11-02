@@ -67,7 +67,7 @@
         ; copy/paste start, a store's been pasted in the "Store" tab,
         ; use it to rebuild the ephem.
         ('store-to-ephem untagged-store)
-          (alist-singleton 'step step-keypress); ephem
+          (list 'output-ephem (alist-singleton 'step step-keypress))
 
         ; Editor restarting itself with new code,
         ; not called by the runtime system but by the `restart`
@@ -1081,7 +1081,7 @@
 ;     (lambda (f store)
 ;       (type-tag-add
 ;         store-tag
-;         (alist-update 'display f (type-tag-get store-tag store)))))
+;         (alist-update-or-crash 'display f (type-tag-get store-tag store)))))
 ;
 (define struct-modify
   'impl
@@ -1092,7 +1092,7 @@
             (lambda (f (unquote struct-name))
               (type-tag-add
                 (unquote tag-name)
-                (alist-update
+                (alist-update-or-crash
                   '(unquote field-name)
                   f
                   (type-tag-get
@@ -1516,20 +1516,39 @@
                   (loop (cdr xs))))))))
         (loop alist))))
 
-(define alist-update
+(define alist-update-or-crash
+  'impl
+    (lambda (k f alist)
+      (case (alist-update-option k f alist)
+        ('some a) a
+        ('none)   (crash 'alist-update-or-crash 'key-not-found k))))
+
+(define alist-update-option
   'examples
     (
-      (alist-update 'a increment (alist-singleton 'a 1)) ((a 2))
-      (alist-update 'a increment (alist-singleton 'b 1)) ((b 1))
+      (alist-update-option 'a increment (alist-singleton 'a 1)) (some ((a 2)))
+      (alist-update-option 'b increment (alist-singleton 'a 1)) (none)
     )
   'impl
     (lambda (k f alist)
       (let
-        ((res (alist-lookup k alist)))
-        (if
-          (eq? (car res) 'error)
-          alist
-          (alist-insert k (f (cadr res)) alist)))))
+        ; Using `loop` to short-circuit if we find the key,
+        ; which something like `list-foldl` wouldn't.
+        ((loop
+          (lambda (acc xs)
+            (if
+              (list-empty? xs)
+              none
+              (if
+                (eq? (car (car xs)) k)
+                (some
+                  (list-append
+                    (list-reverse acc)
+                    (cons
+                      (list k (f (cadr (car xs))))
+                      (cdr xs))))
+                (loop (cons (car xs) acc) (cdr xs)))))))
+      (loop '() alist))))
 
 (define alist-empty
   'examples

@@ -19,7 +19,7 @@ import MidnightSystem.Display as Display
 import MidnightSystem.Keyboard (Keyboard)
 import MidnightSystem.Output (Output(..))
 import MidnightSystem.Step (stepper)
-import MidnightSystem.Util (applyStringToForeign, foreignToSexp)
+import MidnightSystem.Util (applyStringToForeign, foreignToSexp, getSecond, verifyConstructor)
 
 startFromStoreText :: String -> Either String (Moore Keyboard Output)
 startFromStoreText storeSexpString = do
@@ -42,7 +42,10 @@ startFromStoreText storeSexpString = do
 
   mainEvaled <- applyStringToForeign "eval" mainSexpForeign
 
-  ephem <- MidnightJS.applyClosure mainEvaled [ storeToEphemInput ]
+  output <- MidnightJS.applyClosure mainEvaled [ storeToEphemInput ]
+  verifyConstructor "output-ephem" output
+  ephem <- getSecond output
+
   pure
     ( Moore
         { output: OutputSuccess { displaySexp, display, store, ephem }
