@@ -14,7 +14,7 @@ import MidnightSystem.Display (Display)
 import MidnightSystem.Keyboard (Keyboard)
 import MidnightSystem.Keyboard as Keyboard
 import MidnightSystem.Output (Output(..), StepOutput(..), jsToOutput)
-import MidnightSystem.Startup as Startup
+import MidnightSystem.StartFromSource as Startup
 
 newtype StartupFailure = StartupFailure String
 
