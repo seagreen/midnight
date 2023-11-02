@@ -1,11 +1,12 @@
-module MidnightSystem where
+module MidnightSystem
+  ( startFromSource
+  , stepper
+  ) where
 
 import Prelude
 
 import Data.Bifunctor (lmap)
 import Data.Either (Either(..))
-import Data.Generic.Rep (class Generic)
-import Data.Show.Generic (genericShow)
 import Foreign (Foreign)
 import Lib.Moore (Moore(..))
 import MidnightJS as MidnightJS
@@ -16,50 +17,43 @@ import MidnightSystem.Keyboard as Keyboard
 import MidnightSystem.Output (Output(..), StepOutput(..), jsToOutput)
 import MidnightSystem.StartFromSource as Startup
 
-newtype StartupFailure = StartupFailure String
+startFromSource :: String -> Either String (Moore Keyboard Output)
+startFromSource midnightSrc = do
+  -- Evaluate our Midnight source code, turning it into a JS closure.
+  --
+  -- (this is slow)
+  mainMidnight <-
+    lmap
+      (\err -> "Evaluation of source failed: " <> err)
+      (MidnightJS.evalToForeign midnightSrc)
 
-derive instance Generic StartupFailure _
-instance Show StartupFailure where
-  show a = genericShow a
+  -- Starting with the original Midnight source again,
+  -- turn it into a JS value containing a Midnight string.
+  startingInput <-
+    lmap
+      (\err -> "Evaluation of starting input failed: " <> err)
+      (Startup.editorStringToInput midnightSrc)
 
-moore :: String -> Either StartupFailure (Moore Keyboard Output)
-moore midnightSrc =
-  lmap StartupFailure do
-    -- Evaluate our Midnight source code, turning it into a JS closure.
-    --
-    -- (this is slow)
-    mainMidnight <-
-      lmap
-        (\err -> "Evaluation of source failed: " <> err)
-        (MidnightJS.evalToForeign midnightSrc)
+  -- Apply the JS closure to the Midnight string.
+  --
+  -- (this is slow too)
+  systemOutput <-
+    lmap
+      (\err -> "Application of the main function failed: " <> err)
+      (MidnightJS.applyClosure mainMidnight [ startingInput ])
 
-    -- Starting with the original Midnight source again,
-    -- turn it into a JS value containing a Midnight string.
-    startingInput <-
-      lmap
-        (\err -> "Evaluation of starting input failed: " <> err)
-        (Startup.editorStringToInput midnightSrc)
+  -- Parse the output.
+  StepNormal { displaySexp, display, store, ephem } <-
+    lmap
+      (\err -> "Processing of the output failed: " <> err)
+      (jsToOutput systemOutput)
 
-    -- Apply the JS closure to the Midnight string.
-    --
-    -- (this is slow too)
-    systemOutput <-
-      lmap
-        (\err -> "Application of the main function failed: " <> err)
-        (MidnightJS.applyClosure mainMidnight [ startingInput ])
-
-    -- Parse the output.
-    StepNormal { displaySexp, display, store, ephem } <-
-      lmap
-        (\err -> "Processing of the output failed: " <> err)
-        (jsToOutput systemOutput)
-
-    pure
-      ( Moore
-          { output: OutputSuccess { displaySexp, display, store, ephem }
-          , step: stepper { step: mainMidnight, store, ephem }
-          }
-      )
+  pure
+    ( Moore
+        { output: OutputSuccess { displaySexp, display, store, ephem }
+        , step: stepper { step: mainMidnight, store, ephem }
+        }
+    )
 
 -- * step
 

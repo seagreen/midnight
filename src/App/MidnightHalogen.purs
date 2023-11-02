@@ -12,7 +12,6 @@ import Effect.Aff.Class (class MonadAff)
 import Halogen as H
 import Halogen.HTML as HH
 import Lib.Moore (Moore)
-import MidnightSystem (StartupFailure(..))
 import MidnightSystem as MidnightSystem
 import MidnightSystem.Keyboard (Keyboard)
 import MidnightSystem.Output (Output)
@@ -61,8 +60,8 @@ component startingCode =
       H.liftAff $ delay $ Milliseconds 0.0
       _ <-
         -- Be careful with `H.fork` as it can clobber state.
-        H.fork $ case MidnightSystem.moore startingCode of
-          Left (StartupFailure e) ->
+        H.fork $ case MidnightSystem.startFromSource startingCode of
+          Left e ->
             H.put (StartupError e)
 
           Right moore ->

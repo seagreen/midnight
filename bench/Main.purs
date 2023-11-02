@@ -175,13 +175,13 @@ snocCheck =
 
 editorStartup :: Unit -> Unit
 editorStartup _ =
-  const unit (MidnightSystem.moore EditorSource.string)
+  const unit (MidnightSystem.startFromSource EditorSource.string)
 
 -- * editor typing
 
 editorType10 :: Effect Unit
 editorType10 =
-  case MidnightSystem.moore EditorSource.string of
+  case MidnightSystem.startFromSource EditorSource.string of
     Left e ->
       Console.log ("editorType10 failed to start: " <> show e)
 

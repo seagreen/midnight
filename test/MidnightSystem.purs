@@ -15,7 +15,6 @@ import Lib.Moore as Moore
 import MidnightJS as MidnightJS
 import MidnightLang.Sexp (Sexp)
 import MidnightLang.Sexp as Sexp
-import MidnightSystem (StartupFailure(..))
 import MidnightSystem as MidnightSystem
 import MidnightSystem.Keyboard as Keyboard
 import MidnightSystem.Output (Output(..))
@@ -87,24 +86,24 @@ spec = do
                       pure unit
 
     it "hello world example works" do
-      case MidnightSystem.moore HelloWorldSource.string of
-        Left (StartupFailure e) ->
+      case MidnightSystem.startFromSource HelloWorldSource.string of
+        Left e ->
           fail e
 
         Right _ ->
           pure unit
 
     it "initial editor outputs an image successfully" do
-      case MidnightSystem.moore EditorSource.string of
-        Left (StartupFailure e) ->
+      case MidnightSystem.startFromSource EditorSource.string of
+        Left e ->
           fail e
 
         Right _ ->
           pure unit
 
     it "editor accepts some commands" do
-      case MidnightSystem.moore EditorSource.string of
-        Left (StartupFailure e) ->
+      case MidnightSystem.startFromSource EditorSource.string of
+        Left e ->
           fail e
 
         Right moore ->
@@ -129,8 +128,8 @@ spec = do
             outputs `shouldNotSatisfy` isJust
 
     it "performance check - huge editor with with tons of definitions" do
-      case MidnightSystem.moore (EditorHuge.string 1000) of
-        Left (StartupFailure e) ->
+      case MidnightSystem.startFromSource (EditorHuge.string 1000) of
+        Left e ->
           fail e
 
         Right moore ->
@@ -154,8 +153,8 @@ spec = do
             outputs `shouldNotSatisfy` isJust
 
     it "editor starts from store" do
-      case MidnightSystem.moore EditorSource.string of
-        Left (StartupFailure e) ->
+      case MidnightSystem.startFromSource EditorSource.string of
+        Left e ->
           fail ("StartupFailure: " <> e)
 
         Right startingMoore ->
@@ -187,8 +186,8 @@ spec = do
 
     -- NOTE: almost full duplication between this and above test case
     it "performance - editor starts from store with huge editor" do
-      case MidnightSystem.moore (EditorHuge.string 300) of
-        Left (StartupFailure e) ->
+      case MidnightSystem.startFromSource (EditorHuge.string 300) of
+        Left e ->
           fail ("StartupFailure: " <> e)
 
         Right startingMoore ->
@@ -223,8 +222,8 @@ spec = do
 --
 -- NOTE: At 5000 it stack overflows.
 it "lots-o-restarts" do
-  case MidnightSystem.moore EditorSource.string of
-    Left (StartupFailure e) ->
+  case MidnightSystem.startFromSource EditorSource.string of
+    Left e ->
       fail e
 
     Right moore ->

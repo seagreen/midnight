@@ -19,7 +19,6 @@ import Halogen.HTML.Properties as HP
 import Halogen.Query.Event (eventListener)
 import Lib.Moore (Moore(..))
 import MidnightLang.Sexp as Sexp
-import MidnightSystem (StartupFailure(..))
 import MidnightSystem as MidnightSystem
 import MidnightSystem.Display (Display)
 import MidnightSystem.Keyboard (Keyboard)
@@ -161,8 +160,8 @@ component startingCode startingMoore =
     relaunchFromSource :: H.HalogenM State Action slots o m Unit
     relaunchFromSource = do
       str <- H.gets _.sourceTabText
-      case MidnightSystem.moore str of
-        Left (StartupFailure e) ->
+      case MidnightSystem.startFromSource str of
+        Left e ->
           H.modify_ (\s -> s { lastError = Just e })
 
         Right moore ->
