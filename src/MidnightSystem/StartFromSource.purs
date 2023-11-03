@@ -18,9 +18,7 @@ startFromSource :: String -> Either String (Moore Keyboard Output)
 startFromSource midnightSrc = do
   -- Evaluate our Midnight source code, turning it into a JS closure.
   --
-  -- (this is slow)
-  --
-  -- TODO: could cast instead?
+  -- This takes about 1s.
   mainMidnight <-
     lmap
       (\err -> "Evaluation of source failed: " <> err)
