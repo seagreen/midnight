@@ -32,8 +32,6 @@ startFromSource midnightSrc = do
       (editorStringToInput midnightSrc)
 
   -- Apply the JS closure to the Midnight string.
-  --
-  -- (this is slow too)
   systemOutput <-
     lmap
       (\err -> "Application of the main function failed: " <> err)
