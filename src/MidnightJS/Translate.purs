@@ -66,7 +66,7 @@ midnightToJsMap =
     -- Extra
     , Tuple "crash" "crashMidnightHelper"
     , Tuple "trace" "traceMidnightHelper"
-    , Tuple "trace-bench" "tracebenchMidnightHelper"
+    , Tuple "trace-time" "traceTimeMidnightHelper"
     ]
 
 jsToMidnightMap :: Map String String

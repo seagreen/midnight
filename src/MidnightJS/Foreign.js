@@ -173,7 +173,7 @@ const traceMidnightHelper = (label, a) => {
   return a;
 }
 
-const tracebenchMidnightHelper = (label, lazyA) => {
+const traceTimeMidnightHelper = (label, lazyA) => {
   console.time(label);
   const a = lazyA();
   console.timeEnd(label);

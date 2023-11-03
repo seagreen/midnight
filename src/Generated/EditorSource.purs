@@ -155,7 +155,7 @@ string =
     (lambda (store ephem k)
       (let
         ((src (text->string (editor-text (store-editor store)))))
-        (case (trace-bench 'parse (lambda (_) (sexp-parse src)))
+        (case (trace-time 'parse (lambda (_) (sexp-parse src)))
           ('error e)
             (crash e)
 
