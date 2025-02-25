@@ -10,14 +10,6 @@ module.exports = {
       },
     },
   },
-  plugins: [
-    function({ addBase }) {
-      addBase({
-        'body': {
-          'padding-bottom': '3rem'
-        },
-      })
-    }
-  ],
+  plugins: [],
 }
 

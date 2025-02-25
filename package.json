@@ -3,7 +3,8 @@
   "devDependencies": {
     "esbuild": "^0.14.38",
     "purescript": "^0.15.3",
-    "spago": "^0.20.9"
+    "spago": "^0.20.9",
+    "tailwindcss": "^3.4.17"
   },
   "scripts": {
     "build": "spago build",
