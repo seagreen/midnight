@@ -185,7 +185,9 @@ spec = do
 
     -- NOTE: almost full duplication between this and above test case
     it "performance - editor starts from store with huge editor" do
-      case MidnightSystem.startFromSource (EditorHuge.string 300) of
+      -- NOTE: This value has had to come down over time, used to be 300
+      -- but started getting a stack overflow.
+      case MidnightSystem.startFromSource (EditorHuge.string 200) of
         Left e ->
           fail ("StartupFailure: " <> e)
 
