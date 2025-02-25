@@ -24,6 +24,7 @@
     "generate-purs": "./generate-purs",
     "generate-purs-watch": "watchexec --exts midnight -- npm run generate-purs",
     "tailwind": "npx tailwindcss -i ./src/style.css -o ./dist/style.css",
-    "tailwind-watch": "npx tailwindcss -i ./src/style.css -o ./dist/style.css --watch"
+    "tailwind-watch": "npx tailwindcss -i ./src/style.css -o ./dist/style.css --watch",
+    "production-build": "npm ci; npm run postinstall; npm run tailwind; npm run bundle"
   }
 }
