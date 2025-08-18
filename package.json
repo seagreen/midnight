@@ -7,16 +7,14 @@
     "tailwindcss": "^3.4.17"
   },
   "scripts": {
-    "build": "spago build",
-    "build-watch-not-necessary": "npm run build -- --watch",
-    "bundle": "npm run build && npm run esbuild -- --minify --outfile=dist/main.js",
+    "build": "npm run tailwind && npm run bundle",
+    "bundle": "spago build && npm run esbuild -- --minify --outfile=dist/main.js",
     "clean": "rm -rf node_modules output .spago dist/*.js *.lock .cache",
     "esbuild": "esbuild --bundle index.js",
     "esbuild-dev": "esbuild --bundle index.js --keep-names --outfile=dist/main.js",
     "esbuild-dev-watch": "npm run esbuild-dev -- --watch",
     "format": "fish --command 'purs-tidy format-in-place **/*.purs'",
     "postinstall": "spago install",
-    "proxy": "./proxy",
     "serve": "npm run esbuild -- --servedir=dist",
     "test": "spago test",
     "test-watch": "npm run test -- --watch",
@@ -24,7 +22,6 @@
     "generate-purs": "./generate-purs",
     "generate-purs-watch": "watchexec --exts midnight -- npm run generate-purs",
     "tailwind": "npx tailwindcss -i ./src/style.css -o ./dist/style.css",
-    "tailwind-watch": "npx tailwindcss -i ./src/style.css -o ./dist/style.css --watch",
-    "production-build": "npm ci; npm run postinstall; npm run tailwind; npm run bundle"
+    "tailwind-watch": "npx tailwindcss -i ./src/style.css -o ./dist/style.css --watch"
   }
 }
