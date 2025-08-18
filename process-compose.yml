@@ -1,0 +1,13 @@
+version: "0.5"
+
+processes:
+  esbuild:
+    command: "npm run esbuild-dev-watch"
+  tailwind:
+    command: "npm run tailwind-watch"
+  generate-purescript:
+    command: "npm run generate-purs-watch"
+  serve-8000:
+    command: "npm run serve"
+  serve-3000:
+    command: "./proxy"

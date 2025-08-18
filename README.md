@@ -19,31 +19,13 @@ npm run postinstall
 
 # Run
 
-In separate terminals:
+Install [process-compose](https://github.com/F1bonacc1/process-compose) and run `./process-compose`.
 
-```
-npm run esbuild-dev-watch
-```
+OR
 
-```
-npm run tailwind-watch
-```
+Run each of the commands in `./process-compose.yml` in separate terminals.
 
-```
-npm run generate-purs-watch
-```
-
-Port 8000:
-```
-npm run serve
-```
-
-Port 3000:
-```
-./proxy
-```
-
-Go to http://127.0.0.1:3000/
+Then go to http://127.0.0.1:3000/
 
 # Test
 
