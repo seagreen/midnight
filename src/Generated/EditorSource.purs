@@ -565,7 +565,7 @@ string =
       (string->text "ab\nc")
         ((string-tag (97 98)) (string-tag (99)))
 
-      (string->text (list->string (list 97 98 codepoint-newline 99))) ; ab\nc
+      (string->text (list->string (list4 97 98 codepoint-newline 99))) ; ab\nc
         ((string-tag (97 98)) (string-tag (99)))
     )
   'impl
@@ -575,13 +575,13 @@ string =
 (define text->string
   'examples
     (
-      (text->string (list "abc"))
+      (text->string (list1 "abc"))
         (string-tag (97 98 99))
 
-      (text->string (list "abc" ""))
+      (text->string (list2 "abc" ""))
         (string-tag (97 98 99 10))
 
-      (text->string (list "ab" "c"))
+      (text->string (list2 "ab" "c"))
         (string-tag (97 98 10 99))
     )
   'impl
@@ -619,7 +619,7 @@ string =
 (define text-combine-line-with-next
   'examples
     (
-      (text-combine-line-with-next 1 (list "a" "b"))
+      (text-combine-line-with-next 1 (list2 "a" "b"))
         ((string-tag (97 98)))
     )
   'impl
@@ -640,7 +640,7 @@ string =
 (define text-insert-newline
   'examples
     (
-      (text-insert-newline (column-and-row-to-grid-posn 1 1) (list "a"))
+      (text-insert-newline (column-and-row-to-grid-posn 1 1) (list1 "a"))
         ((string-tag ()) (string-tag (97)))
     )
   'impl
@@ -733,16 +733,17 @@ string =
                 (list-empty? (cadr sexp-and-remaining))
                 (ok (car sexp-and-remaining))
                 (error
-                  'sexp-parse
-                  'tokens-remain
-                  (cadr sexp-and-remaining)))))))
+                  (list
+                    'sexp -parse
+                    'tokens-remain
+                    (cadr sexp-and-remaining))))))))
 
 (define sexp-parse-from-tokens
   'impl
     (lambda (tokens)
       (if
         (list-empty? tokens)
-        (error 'sexp-parse-from-tokens 'empty-list)
+        (error (list 'sexp-parse-from-tokens 'empty-list))
         (case (car tokens)
           ('token-begin-paren)
             (sexp-parse-list (cdr tokens))
@@ -781,7 +782,7 @@ string =
           (lambda (acc tokens)
             (if
               (list-empty? tokens)
-              (error 'sexp-parse-list 'no-closing-paren)
+              (error (list 'sexp-parse-list 'no-closing-paren))
               (if
                 (eq? (car tokens) '(token-end-paren))
                 (ok (list (list-reverse acc) (cdr tokens)))
@@ -1021,7 +1022,9 @@ string =
             (lambda (x y)
               (type-tag-add
                 hi-tag
-                (list
+                ; NOTE: These uses of `list` are in the *output* section of the test,
+                ; so they're allowed even though we aren't macro-expanding test input.
+                (list 
                   (list 'x x)
                   (list 'y y)))))
     )
@@ -1390,29 +1393,44 @@ string =
 ; Returns an expression that,
 ; if evaluated in the context of all the other `define`s,
 ; runs those examples.
+;
+; NOTE: Not a define-macro macro, but does work on source code.
 (define definitions->example-tests
   'examples
     (
       (definitions->example-tests '((define one 'impl 1)))
-        (begin)
+        (lambda () '())
 
       (definitions->example-tests '((define one 'examples (one 1) 'impl 1)))
-        (begin (assert-eq one (quote 1)))
+        (lambda () (list1 (assert-eq one (quote 1))))
+
+      ; (definitions->example-tests
+      ;  '((define one 'examples (one 1) 'impl 1)
+      ;    (define two 'examples (two 2) 'impl 2)))
+      ;  (list2 (assert-eq two (quote 2)) (assert-eq one (quote 1)))
     )
   'impl
     (lambda (defines)
-      (cons 'begin
-        (list-map
-          example-to-runnable
-          (list-flatmap flat-alist-to-examples
-            (list-filter
-              (lambda (def)
-                (let
-                  ((name (car def)))
-                  (or
-                    (eq? name 'define)
-                    (eq? name 'define-macro))))
-              defines))))))
+      (let
+        ((listOfAssertions
+          (list-map
+            example-to-runnable
+            (list-flatmap flat-alist-to-examples
+              (list-filter
+                (lambda (def)
+                  (let
+                    ((name (car def)))
+                    (or
+                      (eq? name 'define)
+                      (eq? name 'define-macro))))
+                defines)))))
+      (list3
+        'lambda
+        '()
+        (list-foldl
+          (lambda (acc x) (cons x acc))
+          '()
+          listOfAssertions)))))
 
 (define flat-alist-to-examples
   'examples
@@ -1476,7 +1494,7 @@ string =
               (ok alist)
               (if
                 (list-empty? (cdr xs))
-                (error 'flat-alist->normal-alist 'unpaired (car xs))
+                (error (list 'flat-alist->normal-alist 'unpaired (car xs)))
                 (loop (alist-insert (car xs) (cadr xs) alist) (cdr (cdr xs))))))))
         (loop alist-empty xs))))
 
@@ -1522,7 +1540,7 @@ string =
           (lambda (xs)
             (if
               (list-empty? xs)
-              (error 'alist-lookup-key-not-found k)
+              (error (list 'alist-lookup-key-not-found k))
               (let
                 ((pair (car xs)))
                 (if
@@ -1613,8 +1631,8 @@ string =
 
 (define error
   'impl
-    (lambda xs
-      (list 'error xs)))
+    (lambda (err)
+      (list 'error err)))
 
 (define ok
   'impl
@@ -1703,7 +1721,7 @@ string =
   'impl
     (case '(b foo bar)
       ('a x)   no
-      ('b x y) (list x y)
+      ('b x y) (list2 x y)
       ('c x)   nope))
 
 (define case-test-capture
@@ -1982,7 +2000,7 @@ string =
 (define list-flatmap
   'examples
     (
-      (list-flatmap (lambda (x) (list x x)) '(a b)) (a a b b)
+      (list-flatmap (lambda (x) (list2 x x)) '(a b)) (a a b b)
     )
   'impl
     (lambda (f xs)
@@ -2121,8 +2139,8 @@ string =
 (define list-map-with-offset
   'examples
     (
-      (list-map-with-offset (lambda (n x) (list n x)) '(a b)) ((0 a) (1 b))
-      (list-map-with-offset (lambda (n x) (list n x)) '())    ()
+      (list-map-with-offset (lambda (n x) (list2 n x)) '(a b)) ((0 a) (1 b))
+      (list-map-with-offset (lambda (n x) (list2 n x)) '())    ()
     )
   'impl
     (lambda (f xs)
@@ -2141,8 +2159,8 @@ string =
 (define list-map-with-index
   'examples
     (
-      (list-map-with-index (lambda (n x) (list n x)) '(a b)) ((1 a) (2 b))
-      (list-map-with-index (lambda (n x) (list n x)) '())    ()
+      (list-map-with-index (lambda (n x) (list2 n x)) '(a b)) ((1 a) (2 b))
+      (list-map-with-index (lambda (n x) (list2 n x)) '())    ()
     )
   'impl
     (lambda (f xs)
@@ -2519,12 +2537,6 @@ string =
         'f
         't)))
 
-; Order relies on Midnight evaluating arguments from left to right.
-(define begin
-  'impl
-    (lambda xs
-      'begin-void))
-
 (define assert-eq
   'impl
     (lambda (a b)
@@ -2674,15 +2686,47 @@ string =
         (crash 'two-args-second-not-present))
       (crash 'two-args-first-not-present))))
 
-(define list
+(define-macro list
   'examples
     (
-      (list 'a 'b 'c) (a b c)
-      (list)          ()
+      (eval (list '('a 'b 'c))) (a b c)
+      (eval (list '()))         ()
     )
   'impl
-    (lambda xs
-      xs))
+    (lambda (sexps)
+      (let
+        ((loop
+          (lambda (xs)
+            (if (list-empty? xs)
+              (cons 'quote (cons '() '())) ; => (quote ())
+              (cons 'cons
+                (cons (car xs)
+                  (cons (loop (cdr xs))
+                    '())))))))
+      (loop sexps))))
+
+; NOTE: `list1`-`list4` are necessary because `list` can't be used in `impl` test cases.
+;
+; This is due to macros not being expanded in test cases.
+(define list1
+  'impl
+    (lambda (a)
+      (cons a '())))
+
+(define list2
+  'impl
+    (lambda (a b)
+      (cons a (list1 b))))
+
+(define list3
+  'impl
+    (lambda (a b c)
+      (cons a (list2 b c))))
+
+(define list4
+  'impl
+    (lambda (a b c d)
+      (cons a (list3 b c d))))
 
 (define cadr
   'impl
@@ -2753,8 +2797,17 @@ string =
   (cddr (lambda (xs)
     (cdr (cdr xs))))
 
-  (list (lambda xs
-    xs))
+  (list1
+    (lambda (a)
+      (cons a '())))
+  
+  (list2
+    (lambda (a b)
+      (cons a (list1 b))))
+  
+  (list3
+    (lambda (a b c)
+      (cons a (list2 b c))))
 
   (list-foldl (lambda (f start xs)
     (let
@@ -2822,7 +2875,7 @@ string =
   ; create a let
 
   (to-let (lambda (varlist body)
-    (list 'let varlist body)))
+    (list3 'let varlist body)))
 
   ; ----------------------------------------
   ; macroexpand
@@ -2847,7 +2900,7 @@ string =
     (cadr
       (list-foldr
         process-top-level-definition
-        (list '() '())
+        (list2 '() '())
         sexps))))
 
   (process-top-level-definition (lambda (sexp macrotable-and-acc)
@@ -2856,7 +2909,7 @@ string =
        (acc (cadr macrotable-and-acc)))
       (if
         (define? sexp)
-        (list
+        (list2
           macrotable
           (cons
             (definition->name-and-macroexpanded-impl-body macrotable sexp)
@@ -2878,13 +2931,13 @@ string =
       ((generated-definitions (macro-function (cdr sexp))))
       (list-foldr
         process-top-level-definition
-        (list macrotable acc)
+        (list2 macrotable acc)
         generated-definitions))))
 
   (definition->name-and-macroexpanded-impl-body (lambda (macrotable sexp)
     (let
       ((definition-name (cadr sexp)))
-      (list
+      (list2
         definition-name
         (macroexpand
           macrotable
@@ -2905,8 +2958,8 @@ string =
        ; Also TODO: these list-reverses are getting crazy,
        ; should build into `to-let`?
        (f (eval (to-let (list-reverse new-acc) name))))
-      (list
-        (cons (list name f) macrotable)
+      (list2
+        (cons (list2 name f) macrotable)
         new-acc))))
 
   (define? (lambda (sexp)
@@ -2953,7 +3006,7 @@ string =
        ; Note that `midnight-plus-macros` is the original source exactly,
        ; no macroexpansion or anything like that.
        (test-generating-expr
-         (list 'definitions->example-tests (list 'quote midnight-plus-macros)))
+         (list2 'definitions->example-tests (list2 'quote midnight-plus-macros)))
 
        ; Eval the above expression to get the tests
        (tests
