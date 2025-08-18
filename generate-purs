@@ -1,7 +1,7 @@
 #!/usr/bin/env stack
 {-
  stack script
- --resolver lts-19.30
+ --resolver lts-21.25
  --package "directory raw-strings-qq relude"
  --ghc-options -Wall
 -}
